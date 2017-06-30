@@ -4,7 +4,7 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-version := "0.1.0.dev1"
+version := "0.1.0.dev2"
 
 scalaVersion := "2.11.8"
 

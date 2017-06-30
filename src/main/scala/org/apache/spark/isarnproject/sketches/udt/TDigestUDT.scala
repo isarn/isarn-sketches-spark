@@ -61,3 +61,5 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
     case u => throw new Exception(s"failed to deserialize: $u")
   }
 }
+
+case object TDigestUDT extends TDigestUDT
