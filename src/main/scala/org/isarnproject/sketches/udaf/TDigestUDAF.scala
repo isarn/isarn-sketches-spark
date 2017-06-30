@@ -45,7 +45,9 @@ case class TDigestUDAF(deltaV: Double, maxDiscreteV: Int) extends UserDefinedAgg
   }
 
   def update(buf: MutableAggregationBuffer, input: Row): Unit = {
-    buf(0) = TDigestSQL(buf.getAs[TDigestSQL](0).tdigest + input.getAs[Double](0))
+    if (!input.isNullAt(0)) {
+      buf(0) = TDigestSQL(buf.getAs[TDigestSQL](0).tdigest + input.getAs[Double](0))
+    }
   }
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
