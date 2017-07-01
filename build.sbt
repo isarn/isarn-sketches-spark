@@ -26,6 +26,7 @@ def commonSettings = Seq(
       |import org.apache.spark.SparkContext._
       |import org.apache.spark.rdd.RDD
       |import org.apache.spark.ml.linalg.Vectors
+      |import org.isarnproject.sketches.TDigest
       |import org.isarnproject.sketches.udaf._
       |import org.apache.spark.isarnproject.sketches.udt._
       |val initialConf = new SparkConf().setAppName("repl").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "16mb")
@@ -35,7 +36,7 @@ def commonSettings = Seq(
       |import org.apache.log4j.{Logger, ConsoleAppender, Level}
       |Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
     """.stripMargin,
-    cleanupCommands in console := "spark.stop"    
+    cleanupCommands in console := "spark.stop"
 )
 
 seq(commonSettings:_*)
