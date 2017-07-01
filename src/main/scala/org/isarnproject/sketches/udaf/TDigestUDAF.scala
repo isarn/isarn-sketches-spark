@@ -79,10 +79,7 @@ case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends UserDefin
   }
 
   def update(buf: MutableAggregationBuffer, input: Row): Unit = {
-    println("entering update")
     if (!input.isNullAt(0)) {
-      //val gir = new org.apache.spark.sql.catalyst.expressions.GenericInternalRow(1)
-      //gir.update(0, input(0))
       val vec = input.getAs[Vec](0)
       val tdt = buf.getAs[TDigestArraySQL](0).tdigests
       val tdigests = if (!tdt.isEmpty) tdt else {
@@ -103,11 +100,9 @@ case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends UserDefin
       }
       buf(0) = TDigestArraySQL(tdigests)
     }
-    println("leaving update")
   }
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    println("entering merge")
     val tds2 = buf2.getAs[TDigestArraySQL](0).tdigests
     if (!tds2.isEmpty) {
       val tdt = buf1.getAs[TDigestArraySQL](0).tdigests
@@ -118,13 +113,7 @@ case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends UserDefin
       for { j <- 0 until tds1.length } { tds1(j) ++= tds2(j) }
       buf1(0) = TDigestArraySQL(tds1)
     }
-    println("leaving merge")
   }
 
-  def evaluate(buf: Row): Any = {
-    println("entering evaluate")
-    val r = buf.getAs[TDigestArraySQL](0)
-    println("leaving evaluate")
-    r
-  }
+  def evaluate(buf: Row): Any = buf.getAs[TDigestArraySQL](0)
 }

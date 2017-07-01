@@ -74,22 +74,52 @@ case class TDigestArraySQL(tdigests: Array[TDigest])
 class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
   def userClass: Class[TDigestArraySQL] = classOf[TDigestArraySQL]
 
+  // Spark seems to have trouble with ArrayType data that isn't
+  // serialized using UnsafeArrayData (SPARK-21277), so my workaround
+  // is to store all the cluster information flattened into single Unsafe arrays.
+  // To deserialize, I unpack the slices.
   def sqlType: DataType = StructType(
-    StructField("tdigests", ArrayType(TDigestUDT.sqlType, false), false) ::
+    StructField("delta", DoubleType, false) ::
+    StructField("maxDiscrete", IntegerType, false) ::
+    StructField("clusterS", ArrayType(IntegerType, false), false) ::
+    StructField("clusterX", ArrayType(DoubleType, false), false) ::
+    StructField("ClusterM", ArrayType(DoubleType, false), false) ::
     Nil)
 
   def serialize(tdasql: TDigestArraySQL): Any = {
-    val row = new GenericInternalRow(1)
-    row.update(0, new GenericArrayData(tdasql.tdigests.map(TDigestUDT.serializeTD)))
+    val row = new GenericInternalRow(5)
+    val tda: Array[TDigest] = tdasql.tdigests
+    val delta = if (tda.isEmpty) 0.0 else tda.head.delta
+    val maxDiscrete = if (tda.isEmpty) 0 else tda.head.maxDiscrete
+    val clustS = tda.map(_.nclusters)
+    val clustX = tda.flatMap(_.clusters.keys)
+    val clustM = tda.flatMap(_.clusters.values)
+    row.setDouble(0, delta)
+    row.setInt(1, maxDiscrete)
+    row.update(2, UnsafeArrayData.fromPrimitiveArray(clustS))
+    row.update(3, UnsafeArrayData.fromPrimitiveArray(clustX))
+    row.update(4, UnsafeArrayData.fromPrimitiveArray(clustM))
     row
   }
 
   def deserialize(datum: Any): TDigestArraySQL = datum match {
     case row: InternalRow =>
-      require(row.numFields == 1, s"expected row length 1, got ${row.numFields}")
-      val a = row.getArray(0)
-      println(s"a= $a")
-      TDigestArraySQL(row.getArray(0).array.map(TDigestUDT.deserializeTD))
+      require(row.numFields == 5, s"expected row length 5, got ${row.numFields}")
+      val delta = row.getDouble(0)
+      val maxDiscrete = row.getInt(1)
+      val clustS = row.getArray(2).toIntArray()
+      val clustX = row.getArray(3).toDoubleArray()
+      val clustM = row.getArray(4).toDoubleArray()
+      var beg = 0
+      val tda = clustS.map { nclusters =>
+        val x = clustX.slice(beg, beg + nclusters)
+        val m = clustM.slice(beg, beg + nclusters)
+        val clusters = x.zip(m).foldLeft(TDigestMap.empty) { case (td, e) => td + e }
+        val td = TDigest(delta, maxDiscrete, nclusters, clusters)
+        beg += nclusters
+        td
+      }
+      TDigestArraySQL(tda)
     case u => throw new Exception(s"failed to deserialize: $u")
   }
 }
