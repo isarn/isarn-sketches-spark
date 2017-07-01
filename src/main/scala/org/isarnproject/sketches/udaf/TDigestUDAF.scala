@@ -56,3 +56,75 @@ case class TDigestUDAF(deltaV: Double, maxDiscreteV: Int) extends UserDefinedAgg
 
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
 }
+
+
+case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends UserDefinedAggregateFunction {
+  import org.apache.spark.ml.linalg.{ Vector => Vec }
+
+  def delta(deltaP: Double) = this.copy(deltaV = deltaP)
+
+  def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
+
+  def deterministic: Boolean = false
+
+  def inputSchema: StructType = StructType(StructField("vector", TDigestUDTInfra.udtVectorML) :: Nil)
+
+  def bufferSchema: StructType = StructType(StructField("tdigests", TDigestArrayUDT) :: Nil)
+
+  def dataType: DataType = TDigestArrayUDT
+
+  def initialize(buf: MutableAggregationBuffer): Unit = {
+    // we don't know vector size yet
+    buf(0) = TDigestArraySQL(Array.empty[TDigest])
+  }
+
+  def update(buf: MutableAggregationBuffer, input: Row): Unit = {
+    println("entering update")
+    if (!input.isNullAt(0)) {
+      //val gir = new org.apache.spark.sql.catalyst.expressions.GenericInternalRow(1)
+      //gir.update(0, input(0))
+      val vec = input.getAs[Vec](0)
+      val tdt = buf.getAs[TDigestArraySQL](0).tdigests
+      val tdigests = if (!tdt.isEmpty) tdt else {
+        Array.fill(vec.size) { TDigest.empty(deltaV, maxDiscreteV) }
+      }
+      require(tdigests.length == vec.size)
+      vec match {
+        case v: org.apache.spark.ml.linalg.SparseVector =>
+          var jBeg = 0
+          v.foreachActive((j, x) => {
+            for { k <- jBeg until j } { tdigests(k) += 0.0 }
+            tdigests(j) += x
+            jBeg = j + 1
+          })
+          for { k <- jBeg until vec.size } { tdigests(k) += 0.0 }
+        case _ =>
+          for { j <- 0 until vec.size } { tdigests(j) += vec(j) }
+      }
+      buf(0) = TDigestArraySQL(tdigests)
+    }
+    println("leaving update")
+  }
+
+  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
+    println("entering merge")
+    val tds2 = buf2.getAs[TDigestArraySQL](0).tdigests
+    if (!tds2.isEmpty) {
+      val tdt = buf1.getAs[TDigestArraySQL](0).tdigests
+      val tds1 = if (!tdt.isEmpty) tdt else {
+        Array.fill(tds2.length) { TDigest.empty(deltaV, maxDiscreteV) }
+      }
+      require(tds1.length == tds2.length)
+      for { j <- 0 until tds1.length } { tds1(j) ++= tds2(j) }
+      buf1(0) = TDigestArraySQL(tds1)
+    }
+    println("leaving merge")
+  }
+
+  def evaluate(buf: Row): Any = {
+    println("entering evaluate")
+    val r = buf.getAs[TDigestArraySQL](0)
+    println("leaving evaluate")
+    r
+  }
+}

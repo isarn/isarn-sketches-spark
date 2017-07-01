@@ -34,8 +34,12 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
     StructField("clustM", ArrayType(DoubleType, false), false) ::
     Nil)
 
-  def serialize(tdsql: TDigestSQL): Any = {
-    val TDigestSQL(TDigest(delta, maxDiscrete, nclusters, clusters)) = tdsql
+  def serialize(tdsql: TDigestSQL): Any = serializeTD(tdsql.tdigest)
+
+  def deserialize(datum: Any): TDigestSQL = TDigestSQL(deserializeTD(datum))
+
+  private[sketches] def serializeTD(td: TDigest): InternalRow = {
+    val TDigest(delta, maxDiscrete, nclusters, clusters) = td
     val row = new GenericInternalRow(5)
     row.setDouble(0, delta)
     row.setInt(1, maxDiscrete)
@@ -47,7 +51,7 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
     row
   }
 
-  def deserialize(datum: Any): TDigestSQL = datum match {
+  private[sketches] def deserializeTD(datum: Any): TDigest = datum match {
     case row: InternalRow =>
       require(row.numFields == 5, s"expected row length 5, got ${row.numFields}")
       val delta = row.getDouble(0)
@@ -57,9 +61,46 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
       val clustM = row.getArray(4).toDoubleArray()
       val clusters = clustX.zip(clustM)
         .foldLeft(TDigestMap.empty) { case (td, e) => td + e }
-      TDigestSQL(TDigest(delta, maxDiscrete, nclusters, clusters))
+      TDigest(delta, maxDiscrete, nclusters, clusters)
     case u => throw new Exception(s"failed to deserialize: $u")
   }
 }
 
 case object TDigestUDT extends TDigestUDT
+
+@SQLUserDefinedType(udt = classOf[TDigestArrayUDT])
+case class TDigestArraySQL(tdigests: Array[TDigest])
+
+class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
+  def userClass: Class[TDigestArraySQL] = classOf[TDigestArraySQL]
+
+  def sqlType: DataType = StructType(
+    StructField("tdigests", ArrayType(TDigestUDT.sqlType, false), false) ::
+    Nil)
+
+  def serialize(tdasql: TDigestArraySQL): Any = {
+    val row = new GenericInternalRow(1)
+    row.update(0, new GenericArrayData(tdasql.tdigests.map(TDigestUDT.serializeTD)))
+    row
+  }
+
+  def deserialize(datum: Any): TDigestArraySQL = datum match {
+    case row: InternalRow =>
+      require(row.numFields == 1, s"expected row length 1, got ${row.numFields}")
+      val a = row.getArray(0)
+      println(s"a= $a")
+      TDigestArraySQL(row.getArray(0).array.map(TDigestUDT.deserializeTD))
+    case u => throw new Exception(s"failed to deserialize: $u")
+  }
+}
+
+case object TDigestArrayUDT extends TDigestArrayUDT
+
+// VectorUDT is private[spark], but I can expose what I need this way:
+object TDigestUDTInfra {
+  private val udtML = new org.apache.spark.ml.linalg.VectorUDT
+  def udtVectorML: DataType = udtML
+
+  private val udtMLLib = new org.apache.spark.mllib.linalg.VectorUDT
+  def udtVectorMLLib: DataType = udtMLLib
+}
