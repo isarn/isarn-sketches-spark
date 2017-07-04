@@ -23,12 +23,21 @@ import org.isarnproject.sketches.TDigest
 
 import org.apache.spark.isarnproject.sketches.udt._
 
+/**
+ * A UDAF for sketching numeric data with a TDigest.
+ * Expected to be created using [[tdigestUDAF]].
+ * @tparam N the expected numeric type of the data; Double, Int, etc
+ * @param deltaV The delta value to be used by the TDigest object
+ * @param maxDiscreteV The maxDiscrete value to be used by the TDigest object
+ */
 case class TDigestUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
     num: Numeric[N],
     dataTpe: TDigestUDAFDataType[N]) extends UserDefinedAggregateFunction {
 
+  /** customize the delta value to be used by the TDigest object */
   def delta(deltaP: Double) = this.copy(deltaV = deltaP)
 
+  /** customize the maxDiscrete value to be used by the TDigest object */
   def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
 
   // A t-digest is deterministic, but it is only statistically associative or commutative
@@ -59,6 +68,7 @@ case class TDigestUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
 }
 
+/** A base class that defines the common functionality for array sketching UDAFs */
 abstract class TDigestMultiUDAF extends UserDefinedAggregateFunction {
   def deltaV: Double
   def maxDiscreteV: Int
@@ -90,11 +100,19 @@ abstract class TDigestMultiUDAF extends UserDefinedAggregateFunction {
   def evaluate(buf: Row): Any = buf.getAs[TDigestArraySQL](0)
 }
 
+/**
+ * A UDAF for sketching a column of ML Vectors with an array of TDigest objects.
+ * Expected to be created using [[tdigestMLVecUDAF]].
+ * @param deltaV The delta value to be used by the TDigest object
+ * @param maxDiscreteV The maxDiscrete value to be used by the TDigest object
+ */
 case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends TDigestMultiUDAF {
   import org.apache.spark.ml.linalg.{ Vector => Vec }
 
+  /** customize the delta value to be used by the TDigest object */
   def delta(deltaP: Double) = this.copy(deltaV = deltaP)
 
+  /** customize the maxDiscrete value to be used by the TDigest object */
   def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
 
   def inputSchema: StructType = StructType(StructField("vector", TDigestUDTInfra.udtVectorML) :: Nil)
@@ -124,11 +142,19 @@ case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends TDigestMu
   }
 }
 
+/**
+ * A UDAF for sketching a column of MLLib Vectors with an array of TDigest objects.
+ * Expected to be created using [[tdigestMLLibVecUDAF]].
+ * @param deltaV The delta value to be used by the TDigest object
+ * @param maxDiscreteV The maxDiscrete value to be used by the TDigest object
+ */
 case class TDigestMLLibVecUDAF(deltaV: Double, maxDiscreteV: Int) extends TDigestMultiUDAF {
   import org.apache.spark.mllib.linalg.{ Vector => Vec }
 
+  /** customize the delta value to be used by the TDigest object */
   def delta(deltaP: Double) = this.copy(deltaV = deltaP)
 
+  /** customize the maxDiscrete value to be used by the TDigest object */
   def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
 
   def inputSchema: StructType =
@@ -159,12 +185,21 @@ case class TDigestMLLibVecUDAF(deltaV: Double, maxDiscreteV: Int) extends TDiges
   }
 }
 
+/**
+ * A UDAF for sketching a column of numeric ArrayData with an array of TDigest objects.
+ * Expected to be created using [[tdigestArrayUDAF]].
+ * @tparam N the expected numeric type of the data; Double, Int, etc
+ * @param deltaV The delta value to be used by the TDigest objects
+ * @param maxDiscreteV The maxDiscrete value to be used by the TDigest objects
+ */
 case class TDigestArrayUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
     num: Numeric[N],
     dataTpe: TDigestUDAFDataType[N]) extends TDigestMultiUDAF {
 
+  /** customize the delta value to be used by the TDigest object */
   def delta(deltaP: Double) = this.copy(deltaV = deltaP)
 
+  /** customize the maxDiscrete value to be used by the TDigest object */
   def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
 
   def inputSchema: StructType =

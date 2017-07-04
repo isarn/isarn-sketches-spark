@@ -20,9 +20,20 @@ import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArra
 import org.isarnproject.sketches.TDigest
 import org.isarnproject.sketches.tdmap.TDigestMap
 
+/** A type for receiving the results of deserializing [[TDigestUDT]].
+ * The payload is the tdigest member field, holding a TDigest object.
+ * This is necessary because (a) I define the TDigest type is defined in the isarn-sketches
+ * package and I do not
+ * want any Spark dependencies on that package, and (b) Spark has privatized UserDefinedType under
+ * org.apache.spark scope, and so I have to have a paired result type in the same scope.
+ * @param tdigest The TDigest payload, which does the actual sketching.
+ */
 @SQLUserDefinedType(udt = classOf[TDigestUDT])
 case class TDigestSQL(tdigest: TDigest)
 
+/** A UserDefinedType for serializing and deserializing [[TDigestSQL]] structures during UDAF
+ * aggregations.
+ */
 class TDigestUDT extends UserDefinedType[TDigestSQL] {
   def userClass: Class[TDigestSQL] = classOf[TDigestSQL]
 
@@ -66,11 +77,21 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
   }
 }
 
+/** Instantiated instance of [[TDigestUDT]] for use by UDAF objects */
 case object TDigestUDT extends TDigestUDT
 
+/** A type for receiving the results of deserializing [[TDigestArrayUDT]].
+ * The payload is the tdigests member field, holding an Array of TDigest objects.
+ * @param tdigests An array of TDigest objects, which do the actual sketching.
+ * @see [[TDigestSQL]] for additional context
+ */
 @SQLUserDefinedType(udt = classOf[TDigestArrayUDT])
 case class TDigestArraySQL(tdigests: Array[TDigest])
 
+/**
+ * A UserDefinedType for serializing and deserializing [[TDigestArraySQL]] objects
+ * during UDAF aggregations
+ */
 class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
   def userClass: Class[TDigestArraySQL] = classOf[TDigestArraySQL]
 
@@ -124,9 +145,10 @@ class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
   }
 }
 
+/** A [[TDigestArrayUDT]] instance for use in declaring UDAF objects */
 case object TDigestArrayUDT extends TDigestArrayUDT
 
-// VectorUDT is private[spark], but I can expose what I need this way:
+/** Shims for exposing Spark's VectorUDT objects outside of org.apache.spark scope */
 object TDigestUDTInfra {
   private val udtML = new org.apache.spark.ml.linalg.VectorUDT
   def udtVectorML: DataType = udtML
