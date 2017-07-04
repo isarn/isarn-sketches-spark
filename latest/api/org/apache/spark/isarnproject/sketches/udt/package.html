@@ -1,0 +1,238 @@
+<!DOCTYPE html >
+<html>
+        <head>
+          <title>udt - org.apache.spark.isarnproject.sketches.udt</title>
+          <meta name="description" content="udt - org.apache.spark.isarnproject.sketches.udt" />
+          <meta name="keywords" content="udt org.apache.spark.isarnproject.sketches.udt" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/tools.tooltip.js"></script>
+      
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../../../index.html';
+            var hash = 'org.apache.spark.isarnproject.sketches.udt.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img alt="Package" src="../../../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../../../package.html" class="extype" name="org">org</a>.<a href="../../../../package.html" class="extype" name="org.apache">apache</a>.<a href="../../../package.html" class="extype" name="org.apache.spark">spark</a>.<a href="../../package.html" class="extype" name="org.apache.spark.isarnproject">isarnproject</a>.<a href="../package.html" class="extype" name="org.apache.spark.isarnproject.sketches">sketches</a></p>
+        <h1>udt</h1><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">udt</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        
+        
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="org.apache.spark.isarnproject.sketches.udt.TDigestArraySQL" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="TDigestArraySQLextendsProductwithSerializable"></a>
+      <a id="TDigestArraySQL:TDigestArraySQL"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestArraySQL.html"><span class="name">TDigestArraySQL</span></a><span class="params">(<span name="tdigests">tdigests: <span class="extype" name="scala.Array">Array</span>[<span class="extype" name="org.isarnproject.sketches.TDigest">TDigest</span>]</span>)</span><span class="result"> extends <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestArraySQLextendsProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A type for receiving the results of deserializing <a href="TDigestArrayUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT">TDigestArrayUDT</a>.</p><div class="fullcomment"><div class="comment cmt"><p>A type for receiving the results of deserializing <a href="TDigestArrayUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT">TDigestArrayUDT</a>.
+The payload is the tdigests member field, holding an Array of TDigest objects.</p></div><dl class="paramcmts block"><dt class="param">tdigests</dt><dd class="cmt"><p>An array of TDigest objects, which do the actual sketching.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
+                <span class="name">@SQLUserDefinedType</span><span class="args">()</span>
+              
+        </dd><dt>See also</dt><dd><span class="cmt"><p><a href="TDigestSQL.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestSQL">TDigestSQL</a> for additional context</p></span></dd></dl></div>
+    </li><li name="org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TDigestArrayUDTextendsUserDefinedType[org.apache.spark.isarnproject.sketches.udt.TDigestArraySQL]"></a>
+      <a id="TDigestArrayUDT:TDigestArrayUDT"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestArrayUDT.html"><span class="name">TDigestArrayUDT</span></a><span class="result"> extends <span class="extype" name="org.apache.spark.sql.types.UserDefinedType">UserDefinedType</span>[<a href="TDigestArraySQL.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestArraySQL">TDigestArraySQL</a>]</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestArrayUDTextendsUserDefinedType[org.apache.spark.isarnproject.sketches.udt.TDigestArraySQL]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A UserDefinedType for serializing and deserializing <a href="TDigestArraySQL.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestArraySQL">TDigestArraySQL</a> objects
+during UDAF aggregations
+</p>
+    </li><li name="org.apache.spark.isarnproject.sketches.udt.TDigestSQL" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="TDigestSQLextendsProductwithSerializable"></a>
+      <a id="TDigestSQL:TDigestSQL"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestSQL.html"><span class="name">TDigestSQL</span></a><span class="params">(<span name="tdigest">tdigest: <span class="extype" name="org.isarnproject.sketches.TDigest">TDigest</span></span>)</span><span class="result"> extends <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestSQLextendsProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A type for receiving the results of deserializing <a href="TDigestUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestUDT">TDigestUDT</a>.</p><div class="fullcomment"><div class="comment cmt"><p>A type for receiving the results of deserializing <a href="TDigestUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestUDT">TDigestUDT</a>.
+The payload is the tdigest member field, holding a TDigest object.
+This is necessary because (a) I define the TDigest type is defined in the isarn-sketches
+package and I do not
+want any Spark dependencies on that package, and (b) Spark has privatized UserDefinedType under
+org.apache.spark scope, and so I have to have a paired result type in the same scope.</p></div><dl class="paramcmts block"><dt class="param">tdigest</dt><dd class="cmt"><p>The TDigest payload, which does the actual sketching.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
+                <span class="name">@SQLUserDefinedType</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li name="org.apache.spark.isarnproject.sketches.udt.TDigestUDT" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TDigestUDTextendsUserDefinedType[org.apache.spark.isarnproject.sketches.udt.TDigestSQL]"></a>
+      <a id="TDigestUDT:TDigestUDT"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestUDT.html"><span class="name">TDigestUDT</span></a><span class="result"> extends <span class="extype" name="org.apache.spark.sql.types.UserDefinedType">UserDefinedType</span>[<a href="TDigestSQL.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestSQL">TDigestSQL</a>]</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestUDTextendsUserDefinedType[org.apache.spark.isarnproject.sketches.udt.TDigestSQL]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A UserDefinedType for serializing and deserializing <a href="TDigestSQL.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestSQL">TDigestSQL</a> structures during UDAF
+aggregations.</p>
+    </li></ol>
+            </div>
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
+              <ol><li name="org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TDigestArrayUDT"></a>
+      <a id="TDigestArrayUDT:TDigestArrayUDT"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestArrayUDT$.html"><span class="name">TDigestArrayUDT</span></a><span class="result"> extends <a href="TDigestArrayUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT">TDigestArrayUDT</a> with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestArrayUDT" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A <a href="TDigestArrayUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT">TDigestArrayUDT</a> instance for use in declaring UDAF objects</p>
+    </li><li name="org.apache.spark.isarnproject.sketches.udt.TDigestUDT" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TDigestUDT"></a>
+      <a id="TDigestUDT:TDigestUDT"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestUDT$.html"><span class="name">TDigestUDT</span></a><span class="result"> extends <a href="TDigestUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestUDT">TDigestUDT</a> with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestUDT" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Instantiated instance of <a href="TDigestUDT.html" class="extype" name="org.apache.spark.isarnproject.sketches.udt.TDigestUDT">TDigestUDT</a> for use by UDAF objects</p>
+    </li><li name="org.apache.spark.isarnproject.sketches.udt.TDigestUDTInfra" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TDigestUDTInfra"></a>
+      <a id="TDigestUDTInfra:TDigestUDTInfra"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="TDigestUDTInfra$.html"><span class="name">TDigestUDTInfra</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.apache.spark.isarnproject.sketches.udt.package@TDigestUDTInfra" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Shims for exposing Spark's VectorUDT objects outside of org.apache.spark scope</p>
+    </li></ol>
+            </div>
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+
+
+    </body>
+      </html>
