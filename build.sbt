@@ -4,7 +4,7 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-version := "0.1.0.rc1"
+version := "0.1.0"
 
 scalaVersion := "2.11.8"
 
@@ -31,7 +31,7 @@ def commonSettings = Seq(
       |import org.apache.spark.isarnproject.sketches.udt._
       |val initialConf = new SparkConf().setAppName("repl").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "16mb")
       |val spark = SparkSession.builder.config(initialConf).master("local[2]").getOrCreate()
-      |import spark._
+      |import spark._, spark.implicits._
       |val sc = spark.sparkContext
       |import org.apache.log4j.{Logger, ConsoleAppender, Level}
       |Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
