@@ -218,6 +218,7 @@ case class TDigestArrayUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
         if (x != null) tdigests(j) += num.toDouble(x)
         j += 1
       }
+      buf(0) = TDigestArraySQL(tdigests)
     }
   }
 }
