@@ -45,6 +45,13 @@ licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0"))
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
+test in assembly := {}
+
+assemblyShadeRules in assembly := Seq(
+  ShadeRule.zap("scala.**").inAll,
+  ShadeRule.zap("org.slf4j.**").inAll
+)
+
 scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt")
 
 site.settings
