@@ -4,7 +4,7 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-version := "0.1.0"
+version := "0.1.0.py1"
 
 scalaVersion := "2.11.8"
 
@@ -44,6 +44,25 @@ seq(commonSettings:_*)
 licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0"))
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+
+lazy val compilePython = taskKey[Unit]("Compile python files")
+
+compilePython := {
+  val s: TaskStreams = streams.value
+  s.log.info("compiling python...")
+  val stat = (Seq("python2", "-m compileall python/") !)
+  if (stat == 0) {
+    s.log.info("python compile succeeded")
+  } else {
+    throw new IllegalStateException("python compile failed")
+  }
+}
+
+(run in Compile) <<= (run in Compile).dependsOn(compilePython)
+
+mappings in (Compile, packageBin) += {
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.py") -> "isarnproject/sketches/udaf/tdigest.py"
+}
 
 test in assembly := {}
 

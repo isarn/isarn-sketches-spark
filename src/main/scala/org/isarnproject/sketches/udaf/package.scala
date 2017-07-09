@@ -114,5 +114,5 @@ package object udaf {
   implicit val tDigestUDAFDataTypeFloat = TDigestUDAFDataType[Float](FloatType)
   implicit val tDigestUDAFDataTypeDouble = TDigestUDAFDataType[Double](DoubleType)
 
-  val tdigestDoubleUDAF = tdigestUDAF[Double]
+  //val tdigestDoubleUDAF = tdigestUDAF[Double]
 }

@@ -68,7 +68,7 @@ case class TDigestUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
 }
 
-class TDigestDoubleUDAF extends UserDefinedAggregateFunction {
+object TDigestDoubleUDAF extends UserDefinedAggregateFunction {
   def deterministic: Boolean = false
 
   def inputSchema: StructType = StructType(StructField("x", DoubleType) :: Nil)
