@@ -4,7 +4,7 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-version := "0.1.0.py1"
+version := "0.1.0.py2"
 
 scalaVersion := "2.11.8"
 
@@ -50,7 +50,7 @@ lazy val compilePython = taskKey[Unit]("Compile python files")
 compilePython := {
   val s: TaskStreams = streams.value
   s.log.info("compiling python...")
-  val stat = (Seq("python2", "-m compileall python/") !)
+  val stat = (Seq("python2", "-m", "compileall", "python/") !)
   if (stat == 0) {
     s.log.info("python compile succeeded")
   } else {
@@ -58,11 +58,14 @@ compilePython := {
   }
 }
 
-(run in Compile) <<= (run in Compile).dependsOn(compilePython)
+(packageBin in Compile) <<= (packageBin in Compile).dependsOn(compilePython)
 
-mappings in (Compile, packageBin) += {
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.py") -> "isarnproject/sketches/udaf/tdigest.py"
-}
+mappings in (Compile, packageBin) ++= Seq(
+  (baseDirectory.value / "python" / "isarnproject" / "__init__.pyc") -> "isarnproject/__init__.pyc",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.pyc") -> "isarnproject/sketches/__init__.pyc",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "__init__.pyc") -> "isarnproject/sketches/udaf/__init__.pyc",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.pyc") -> "isarnproject/sketches/udaf/tdigest.pyc"
+)
 
 test in assembly := {}
 
