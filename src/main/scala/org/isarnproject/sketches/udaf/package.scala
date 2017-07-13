@@ -40,7 +40,7 @@ package object udaf {
   def tdigestUDAF[N](implicit
     num: Numeric[N],
     dataType: TDigestUDAFDataType[N])
-  = TDigestUDAF(TDigest.deltaDefault, 0)
+  = new TDigestUDAF(TDigest.deltaDefault, 0)
 
   /**
    * Obtain a UDAF for sketching a numeric array-data Dataset column, using a t-digest for
@@ -113,6 +113,4 @@ package object udaf {
   implicit val tDigestUDAFDataTypeLong = TDigestUDAFDataType[Long](LongType)
   implicit val tDigestUDAFDataTypeFloat = TDigestUDAFDataType[Float](FloatType)
   implicit val tDigestUDAFDataTypeDouble = TDigestUDAFDataType[Double](DoubleType)
-
-  //val tdigestDoubleUDAF = tdigestUDAF[Double]
 }

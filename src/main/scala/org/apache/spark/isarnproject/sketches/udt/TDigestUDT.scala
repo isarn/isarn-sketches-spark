@@ -37,6 +37,19 @@ case class TDigestSQL(tdigest: TDigest)
 class TDigestUDT extends UserDefinedType[TDigestSQL] {
   def userClass: Class[TDigestSQL] = classOf[TDigestSQL]
 
+  override def pyUDT: String = "isarnproject.sketches.udt.tdigest.TDigestUDT"
+
+  override def typeName: String = "tdigest"
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case _: TDigestUDT => true
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = classOf[TDigestUDT].getName.hashCode()
+
   def sqlType: DataType = StructType(
     StructField("delta", DoubleType, false) ::
     StructField("maxDiscrete", IntegerType, false) ::
