@@ -1,7 +1,5 @@
 
 import sys
-#import array
-#import struct
 
 import numpy as np
 
@@ -50,6 +48,8 @@ class TDigest(object):
     assumed to have been produced with a t-digest UDAF, also exposed in this package.
     """
 
+    # Because this is a value and not a function, TDigestUDT has to be defined above,
+    # and in the same file.
     __UDT__ = TDigestUDT()
 
     def __init__(self, delta, maxDiscrete, nclusters, clustX, clustM):
