@@ -1,5 +1,6 @@
 
 import sys
+import random
 
 import numpy as np
 
@@ -170,6 +171,56 @@ class TDigest(object):
             c = cov.l.get()[0]
             return c
         return float('nan')
+
+    def cdfDiscrete(self, xx):
+        """
+        return CDF(x) for a numeric value x, assuming the sketch is representing a
+        discrete distribution.
+        """
+        if self.isEmpty():
+            return 0.0
+        j = np.searchsorted(self.clustX, float(xx), side='right')
+        if (j == 0):
+            return 0.0
+        return self.clustP[j - 1] / self.mass()
+
+    def cdfDiscreteInverse(self, qq):
+        """
+        Given a value q on [0,1], return the value x such that CDF(x) = q, assuming
+        the sketch is represenging a discrete distribution.
+        Returns NaN for any q > 1 or < 0, or if this TDigest is empty.
+        """        
+        q = float(qq)
+        if (q < 0.0) or (q > 1.0):
+            return float('nan')
+        if self.isEmpty():
+            return float('nan')
+        j = np.searchsorted(self.clustP, q * self.mass(), side='left')
+        return self.clustX[j]
+
+    def samplePDF(self):
+        """
+        Return a random sampling from the sketched distribution, using inverse
+        transform sampling, assuming a continuous distribution.
+        """
+        return self.cdfInverse(random.random())
+
+    def samplePMF(self):
+        """
+        Return a random sampling from the sketched distribution, using inverse
+        transform sampling, assuming a discrete distribution.
+        """
+        return self.cdfDiscreteInverse(random.random())
+
+    def sample(self):
+        """
+        Return a random sampling from the sketched distribution, using inverse
+        transform sampling, assuming a discrete distribution if the number of
+        TDigest clusters is <= maxDiscrete, and a continuous distribution otherwise.
+        """
+        if self.maxDiscrete <= self.nclusters:
+            return self.cdfDiscreteInverse(random.random())
+        return self.cdfInverse(random.random())
 
 class Cover(object):
     """
