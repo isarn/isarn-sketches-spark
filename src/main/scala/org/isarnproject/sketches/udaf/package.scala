@@ -40,7 +40,7 @@ package object udaf {
   def tdigestUDAF[N](implicit
     num: Numeric[N],
     dataType: TDigestUDAFDataType[N])
-  = new TDigestUDAF(TDigest.deltaDefault, 0)
+  = TDigestUDAF(TDigest.deltaDefault, 0)
 
   /**
    * Obtain a UDAF for sketching a numeric array-data Dataset column, using a t-digest for

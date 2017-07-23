@@ -4,7 +4,19 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-version := "0.1.0.py3.SNAPSHOT"
+val packageVersion = "0.1.0"
+
+val sparkVersion = "2.1.0"
+
+val pythonVersion = "2.7"
+
+val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString("_")}"""
+
+val pythonSuffix = s"""py${pythonVersion.split('.').take(2).mkString("_")}"""
+
+val pythonCMD = s"""python${pythonVersion.split('.').head}"""
+
+version := s"${packageVersion}.${sparkSuffix}_${pythonSuffix}"
 
 scalaVersion := "2.11.8"
 
@@ -13,9 +25,9 @@ crossScalaVersions := Seq("2.10.6", "2.11.8")
 def commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.isarnproject" %% "isarn-sketches" % "0.1.0",
-    "org.apache.spark" %% "spark-core" % "2.1.0" % Provided,
-    "org.apache.spark" %% "spark-sql" % "2.1.0" % Provided,
-    "org.apache.spark" %% "spark-mllib" % "2.1.0" % Provided,
+    "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
+    "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
+    "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
     "org.isarnproject" %% "isarn-scalatest" % "0.0.1" % Test,
     "org.scalatest" %% "scalatest" % "2.2.4" % Test,
     "org.apache.commons" % "commons-math3" % "3.6.1" % Test),
@@ -45,18 +57,34 @@ licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0"))
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
+lazy val deletePYC = taskKey[Unit]("Delete .pyc files")
+
+deletePYC := {
+  val s: TaskStreams = streams.value
+  s.log.info("delete .pyc files...")
+  val cmd = "bash" :: "-c" :: "rm -f $(find python -name *.pyc)" :: Nil
+  val stat = (cmd !)
+  if (stat == 0) {
+    s.log.info("delete .pyc succeeded")
+  } else {
+    throw new IllegalStateException("delete .pyc failed")
+  }
+}
+
 lazy val compilePython = taskKey[Unit]("Compile python files")
 
 compilePython := {
   val s: TaskStreams = streams.value
   s.log.info("compiling python...")
-  val stat = (Seq("python2", "-m", "compileall", "python/") !)
+  val stat = (Seq(pythonCMD, "-m", "compileall", "python/") !)
   if (stat == 0) {
     s.log.info("python compile succeeded")
   } else {
     throw new IllegalStateException("python compile failed")
   }
 }
+
+compilePython <<= compilePython.dependsOn(deletePYC)
 
 (packageBin in Compile) <<= (packageBin in Compile).dependsOn(compilePython)
 

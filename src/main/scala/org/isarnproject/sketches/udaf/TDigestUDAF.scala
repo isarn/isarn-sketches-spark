@@ -30,14 +30,9 @@ import org.apache.spark.isarnproject.sketches.udt._
  * @param deltaV The delta value to be used by the TDigest object
  * @param maxDiscreteV The maxDiscrete value to be used by the TDigest object
  */
-class TDigestUDAF[N](val deltaV: Double, val maxDiscreteV: Int)(implicit
+case class TDigestUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
     num: Numeric[N],
     dataTpe: TDigestUDAFDataType[N]) extends UserDefinedAggregateFunction {
-
-  def copy(deltaV: Double = this.deltaV, maxDiscreteV: Int = this.maxDiscreteV) =
-    new TDigestUDAF[N](deltaV, maxDiscreteV)
-
-  override def toString = s"TDigestUDAF($deltaV, $maxDiscreteV)"
 
   /** customize the delta value to be used by the TDigest object */
   def delta(deltaP: Double) = this.copy(deltaV = deltaP)
@@ -71,75 +66,6 @@ class TDigestUDAF[N](val deltaV: Double, val maxDiscreteV: Int)(implicit
   }
 
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
-}
-
-/*
-class TDigestDoubleUDAF(override val deltaV: Double, override val maxDiscreteV: Int) extends
-    TDigestUDAF[Double](deltaV, maxDiscreteV)(implicitly[Numeric[Double]], tDigestUDAFDataTypeDouble) {
-
-  override def copy(deltaV: Double = this.deltaV, maxDiscreteV: Int = this.maxDiscreteV): TDigestDoubleUDAF =
-    new TDigestDoubleUDAF(deltaV, maxDiscreteV)
-
-  override def toString = s"TDigestDoubleUDAF($deltaV, $maxDiscreteV)"
-}
-*/
-
-class TDigestDoubleUDAF extends UserDefinedAggregateFunction {
-  def deterministic: Boolean = false
-
-  def inputSchema: StructType = StructType(StructField("x", DoubleType) :: Nil)
-
-  def bufferSchema: StructType = StructType(StructField("tdigest", TDigestUDT) :: Nil)
-
-  def dataType: DataType = TDigestUDT
-
-  def initialize(buf: MutableAggregationBuffer): Unit = {
-    buf(0) = TDigestSQL(TDigest.empty(0.5, 0))
-  }
-
-  def update(buf: MutableAggregationBuffer, input: Row): Unit = {
-    if (!input.isNullAt(0)) {
-      buf(0) = TDigestSQL(buf.getAs[TDigestSQL](0).tdigest + input.getDouble(0))
-    }
-  }
-
-  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    buf1(0) = TDigestSQL(buf1.getAs[TDigestSQL](0).tdigest ++ buf2.getAs[TDigestSQL](0).tdigest)
-  }
-
-  def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
-}
-
-object Static2TDigestDoubleUDAF extends UserDefinedAggregateFunction {
-  def deterministic: Boolean = false
-
-  def inputSchema: StructType = StructType(StructField("x", DoubleType) :: Nil)
-
-  def bufferSchema: StructType = StructType(StructField("tdigest", TDigestUDT) :: Nil)
-
-  def dataType: DataType = TDigestUDT
-
-  def initialize(buf: MutableAggregationBuffer): Unit = {
-    buf(0) = TDigestSQL(TDigest.empty(0.5, 0))
-  }
-
-  def update(buf: MutableAggregationBuffer, input: Row): Unit = {
-    if (!input.isNullAt(0)) {
-      buf(0) = TDigestSQL(buf.getAs[TDigestSQL](0).tdigest + input.getDouble(0))
-    }
-  }
-
-  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    buf1(0) = TDigestSQL(buf1.getAs[TDigestSQL](0).tdigest ++ buf2.getAs[TDigestSQL](0).tdigest)
-  }
-
-  def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
-}
-
-object StaticTDigestDoubleUDAF extends TDigestDoubleUDAF
-
-object python {
-  def tdigestDoubleUDAF() = new TDigestDoubleUDAF
 }
 
 /** A base class that defines the common functionality for array sketching UDAFs */
@@ -295,4 +221,36 @@ case class TDigestArrayUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
       buf(0) = TDigestArraySQL(tdigests)
     }
   }
+}
+
+object pythonBindings {
+  def tdigestIntUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestUDAF[Int](delta, maxDiscrete)
+
+  def tdigestLongUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestUDAF[Long](delta, maxDiscrete)
+
+  def tdigestFloatUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestUDAF[Float](delta, maxDiscrete)
+
+  def tdigestDoubleUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestUDAF[Double](delta, maxDiscrete)
+
+  def tdigestMLVecUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestMLVecUDAF(delta, maxDiscrete)
+
+  def tdigestMLLibVecUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestMLLibVecUDAF(delta, maxDiscrete)
+
+  def tdigestIntArrayUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestArrayUDAF[Int](delta, maxDiscrete)
+
+  def tdigestLongArrayUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestArrayUDAF[Long](delta, maxDiscrete)
+
+  def tdigestFloatArrayUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestArrayUDAF[Float](delta, maxDiscrete)
+
+  def tdigestDoubleArrayUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestArrayUDAF[Double](delta, maxDiscrete)
 }
