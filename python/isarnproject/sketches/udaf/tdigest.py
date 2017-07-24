@@ -18,7 +18,7 @@ def tdigestLongUDAF(col, delta=0.5, maxDiscrete=0):
         delta, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
-def tdigestFLoatUDAF(col, delta=0.5, maxDiscrete=0):
+def tdigestFloatUDAF(col, delta=0.5, maxDiscrete=0):
     sc = SparkContext._active_spark_context
     tdapply = sc._jvm.org.isarnproject.sketches.udaf.pythonBindings.tdigestFloatUDAF( \
         delta, maxDiscrete).apply
