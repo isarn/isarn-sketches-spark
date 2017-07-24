@@ -41,6 +41,65 @@ class TDigestUDT(UserDefinedType):
     def deserialize(self, datum):
         return TDigest(datum[0], datum[1], datum[2], datum[3], datum[4])
 
+class TDigestArrayUDT(UserDefinedType):
+    @classmethod
+    def sqlType(cls):
+        return StructType([
+            StructField("delta", DoubleType(), False),
+            StructField("maxDiscrete", IntegerType(), False),
+            StructField("clusterS", ArrayType(IntegerType(), False), False),
+            StructField("clusterX", ArrayType(DoubleType(), False), False),
+            StructField("clusterM", ArrayType(DoubleType(), False), False)])
+
+    @classmethod
+    def module(cls):
+        return "isarnproject.sketches.udt.tdigest"
+
+    @classmethod
+    def scalaUDT(cls):
+        return "org.apache.spark.isarnproject.sketches.udt.TDigestArrayUDT"
+
+    def simpleString(self):
+        return "tdigestarray"
+
+    def serialize(self, obj):
+        if isinstance(obj, TDigestList):
+            clustS = []
+            clustX = []
+            clustM = []
+            for td in obj:
+                clustS.append(td.nclusters)
+                clustX += [float(v) for v in td.clustX]
+                clustM += [float(v) for v in td.clustM]
+            delta = obj[0].delta if len(obj) > 0 else 0.5
+            maxDiscrete = obj[0].maxDiscrete if len(obj) > 0 else 0
+            return (delta, maxDiscrete, clustS, clustX, clustM)
+        else:
+            raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
+
+    def deserialize(self, datum):
+        delta = datum[0]
+        maxDiscrete = datum[1]
+        clusterS = datum[2]
+        clusterX = datum[3]
+        clusterM = datum[4]
+        tdlist = TDigestList()
+        b = 0
+        for s in clusterS:
+            clustX = clusterX[b:b+s]
+            clustM = clusterM[b:b+s]
+            tdlist.append(TDigest(delta, maxDiscrete, s, clustX, clustM))
+            b += s
+        return tdlist
+
+class TDigestList(list):
+    """
+    A subclass of a list of TDigest objects, deserialized from a Dataset.
+    This subclass has a __UDT__ element
+    """
+
+    __UDT__ = TDigestArrayUDT()
+
 class TDigest(object):
     """
     A T-Digest sketch of a cumulative numeric distribution.
