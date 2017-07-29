@@ -223,6 +223,12 @@ case class TDigestArrayUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
   }
 }
 
+/**
+ * A UDAF for aggregating (reducing) a column of t-digests.
+ * Expected to be created using [[tdigestReduceUDAF]].
+ * @param deltaV The delta value to be used by the TDigest objects
+ * @param maxDiscreteV The maxDiscrete value to be used by the TDigest objects
+ */
 case class TDigestReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
     UserDefinedAggregateFunction {
 
@@ -255,6 +261,12 @@ case class TDigestReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
 }
 
+/**
+ * A UDAF for aggregating (reducing) a column of t-digest vectors.
+ * Expected to be created using [[tdigestArrayReduceUDAF]].
+ * @param deltaV The delta value to be used by the TDigest objects
+ * @param maxDiscreteV The maxDiscrete value to be used by the TDigest objects
+ */
 case class TDigestArrayReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
     UserDefinedAggregateFunction {
 

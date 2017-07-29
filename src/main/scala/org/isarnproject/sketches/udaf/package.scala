@@ -97,8 +97,16 @@ package object udaf {
    */
   def tdigestMLLibVecUDAF = TDigestMLLibVecUDAF(TDigest.deltaDefault, 0)
 
+  /**
+   * Obtain a UDAF for aggregating (reducing) a column of t-digests
+   * @return A UDAF that can be applied to a column of t-digests
+   */
   def tdigestReduceUDAF = TDigestReduceUDAF(TDigest.deltaDefault, 0)
 
+  /**
+   * Obtain a UDAF for aggregating (reducing) a column of t-digest vectors
+   * @return A UDAF that can be applied to a column of t-digest vectors
+   */
   def tdigestArrayReduceUDAF = TDigestArrayReduceUDAF(TDigest.deltaDefault, 0)
 
   /** implicitly unpack a TDigestSQL to extract its TDigest payload */
