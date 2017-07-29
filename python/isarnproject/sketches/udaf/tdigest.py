@@ -4,7 +4,8 @@ from pyspark.context import SparkContext
 __all__ = ['tdigestIntUDAF', 'tdigestLongUDAF', 'tdigestFloatUDAF', 'tdigestDoubleUDAF', \
            'tdigestMLVecUDAF', 'tdigestMLLibVecUDAF', \
            'tdigestIntArrayUDAF', 'tdigestLongArrayUDAF', \
-           'tdigestFloatArrayUDAF', 'tdigestDoubleArrayUDAF' ]
+           'tdigestFloatArrayUDAF', 'tdigestDoubleArrayUDAF', \
+           'tdigestReduceUDAF', 'tdigestArrayReduceUDAF']
 
 def tdigestIntUDAF(col, delta=0.5, maxDiscrete=0):
     sc = SparkContext._active_spark_context
@@ -63,5 +64,17 @@ def tdigestFloatArrayUDAF(col, delta=0.5, maxDiscrete=0):
 def tdigestDoubleArrayUDAF(col, delta=0.5, maxDiscrete=0):
     sc = SparkContext._active_spark_context
     tdapply = sc._jvm.org.isarnproject.sketches.udaf.pythonBindings.tdigestDoubleArrayUDAF( \
+        delta, maxDiscrete).apply
+    return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
+
+def tdigestReduceUDAF(col, delta=0.5, maxDiscrete=0):
+    sc = SparkContext._active_spark_context
+    tdapply = sc._jvm.org.isarnproject.sketches.udaf.pythonBindings.tdigestReduceUDAF( \
+        delta, maxDiscrete).apply
+    return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
+
+def tdigestArrayReduceUDAF(col, delta=0.5, maxDiscrete=0):
+    sc = SparkContext._active_spark_context
+    tdapply = sc._jvm.org.isarnproject.sketches.udaf.pythonBindings.tdigestArrayReduceUDAF( \
         delta, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))

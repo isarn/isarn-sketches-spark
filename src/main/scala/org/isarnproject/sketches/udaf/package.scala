@@ -97,6 +97,10 @@ package object udaf {
    */
   def tdigestMLLibVecUDAF = TDigestMLLibVecUDAF(TDigest.deltaDefault, 0)
 
+  def tdigestReduceUDAF = TDigestReduceUDAF(TDigest.deltaDefault, 0)
+
+  def tdigestArrayReduceUDAF = TDigestArrayReduceUDAF(TDigest.deltaDefault, 0)
+
   /** implicitly unpack a TDigestSQL to extract its TDigest payload */
   implicit def implicitTDigestSQLToTDigest(tdsql: TDigestSQL): TDigest = tdsql.tdigest
 

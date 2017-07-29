@@ -223,6 +223,79 @@ case class TDigestArrayUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
   }
 }
 
+case class TDigestReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
+    UserDefinedAggregateFunction {
+
+  /** customize the delta value to be used by the TDigest object */
+  def delta(deltaP: Double) = this.copy(deltaV = deltaP)
+
+  /** customize the maxDiscrete value to be used by the TDigest object */
+  def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
+
+  def deterministic: Boolean = false
+
+  def inputSchema: StructType = StructType(StructField("tdigest", TDigestUDT) :: Nil)
+
+  def bufferSchema: StructType = StructType(StructField("tdigest", TDigestUDT) :: Nil)
+
+  def dataType: DataType = TDigestUDT
+
+  def initialize(buf: MutableAggregationBuffer): Unit = {
+    buf(0) = TDigestSQL(TDigest.empty(deltaV, maxDiscreteV))
+  }
+
+  def update(buf: MutableAggregationBuffer, input: Row): Unit = this.merge(buf, input)
+
+  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
+    if (!buf2.isNullAt(0)) {
+      buf1(0) = TDigestSQL(buf1.getAs[TDigestSQL](0).tdigest ++ buf2.getAs[TDigestSQL](0).tdigest)
+    }
+  }
+
+  def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
+}
+
+case class TDigestArrayReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
+    UserDefinedAggregateFunction {
+
+  /** customize the delta value to be used by the TDigest object */
+  def delta(deltaP: Double) = this.copy(deltaV = deltaP)
+
+  /** customize the maxDiscrete value to be used by the TDigest object */
+  def maxDiscrete(maxDiscreteP: Int) = this.copy(maxDiscreteV = maxDiscreteP)
+
+  def deterministic: Boolean = false
+
+  def inputSchema: StructType = StructType(StructField("tdigests", TDigestArrayUDT) :: Nil)
+
+  def bufferSchema: StructType = StructType(StructField("tdigests", TDigestArrayUDT) :: Nil)
+
+  def dataType: DataType = TDigestArrayUDT
+
+  def initialize(buf: MutableAggregationBuffer): Unit = {
+    buf(0) = TDigestArraySQL(Array.empty[TDigest])
+  }
+
+  def update(buf: MutableAggregationBuffer, input: Row): Unit = this.merge(buf, input)
+
+  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
+    if (!buf2.isNullAt(0)) {
+      val tds2 = buf2.getAs[TDigestArraySQL](0).tdigests
+      if (!tds2.isEmpty) {
+        val tdt = buf1.getAs[TDigestArraySQL](0).tdigests
+        val tds1 = if (!tdt.isEmpty) tdt else {
+          Array.fill(tds2.length) { TDigest.empty(deltaV, maxDiscreteV) }
+        }
+        require(tds1.length == tds2.length)
+        for { j <- 0 until tds1.length } { tds1(j) ++= tds2(j) }
+        buf1(0) = TDigestArraySQL(tds1)
+      }
+    }
+  }
+
+  def evaluate(buf: Row): Any = buf.getAs[TDigestArraySQL](0)
+}
+
 object pythonBindings {
   def tdigestIntUDAF(delta: Double, maxDiscrete: Int) =
     TDigestUDAF[Int](delta, maxDiscrete)
@@ -253,4 +326,10 @@ object pythonBindings {
 
   def tdigestDoubleArrayUDAF(delta: Double, maxDiscrete: Int) =
     TDigestArrayUDAF[Double](delta, maxDiscrete)
+
+  def tdigestReduceUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestReduceUDAF(delta, maxDiscrete)
+
+  def tdigestArrayReduceUDAF(delta: Double, maxDiscrete: Int) =
+    TDigestArrayReduceUDAF(delta, maxDiscrete)
 }
