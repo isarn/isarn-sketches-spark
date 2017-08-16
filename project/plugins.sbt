@@ -13,6 +13,10 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.5.4")
 
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.6.0")
 
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.1")
+
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.0")
+
 // scoverage and coveralls deps are at old versions to avoid a bug in the current versions
 // update these when this fix is released:  https://github.com/scoverage/sbt-coveralls/issues/73
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.0.4")
