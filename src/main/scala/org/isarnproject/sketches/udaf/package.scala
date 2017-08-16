@@ -98,14 +98,62 @@ package object udaf {
   def tdigestMLLibVecUDAF = TDigestMLLibVecUDAF(TDigest.deltaDefault, 0)
 
   /**
-   * Obtain a UDAF for aggregating (reducing) a column of t-digests
-   * @return A UDAF that can be applied to a column of t-digests
+   * Obtain a UDAF for aggregating (reducing) a column (or grouping) of t-digests
+   * @return A UDAF that can be applied to a column or grouping of t-digests
+   * @example
+   * {{{
+   * scala> import org.isarnproject.sketches.udaf._, org.apache.spark.isarnproject.sketches.udt._
+   * // column of t-digests (might also be result of aggregating from groupBy)
+   * scala> tds.show()
+   * +--------------------+
+   * |            tdigests|
+   * +--------------------+
+   * |TDigestSQL(TDiges...|
+   * |TDigestSQL(TDiges...|
+   * |TDigestSQL(TDiges...|
+   * +--------------------+
+   *
+   * // apply tdigestReduceUDAF to reduce the t-digests to a single combined t-digest
+   * scala> val td = tds.agg(tdigestReduceUDAF($"tdigests").alias("tdigest"))
+   * td: org.apache.spark.sql.DataFrame = [tdigest: tdigest]
+   *
+   * scala> td.show()
+   * +--------------------+
+   * |             tdigest|
+   * +--------------------+
+   * |TDigestSQL(TDiges...|
+   * +--------------------+
+   * }}}
    */
   def tdigestReduceUDAF = TDigestReduceUDAF(TDigest.deltaDefault, 0)
 
   /**
    * Obtain a UDAF for aggregating (reducing) a column of t-digest vectors
    * @return A UDAF that can be applied to a column of t-digest vectors
+   * @example
+   * {{{
+   * scala> import org.isarnproject.sketches.udaf._, org.apache.spark.isarnproject.sketches.udt._
+   * // column of t-digest arrays (might also be result of aggregating from groupBy)
+   * scala> tds.show()
+   * +--------------------+
+   * |            tdarrays|
+   * +--------------------+
+   * |TDigestArraySQL([...|
+   * |TDigestArraySQL([...|
+   * |TDigestArraySQL([...|
+   * +--------------------+
+   *
+   * // apply tdigestArrayReduceUDAF to reduce the t-digest arrays to single array
+   * scala> val td = tds.agg(tdigestArrayReduceUDAF($"tdigests").alias("tdarray"))
+   * td: org.apache.spark.sql.DataFrame = [tdarray: tdigestarray]
+   *
+   * scala> td.show()
+   * +---------------------+
+   * |              tdarray|
+   * +---------------------+
+   * | TDigestArraySQL([...|
+   * +---------------------+
+   * }}}
    */
   def tdigestArrayReduceUDAF = TDigestArrayReduceUDAF(TDigest.deltaDefault, 0)
 
