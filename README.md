@@ -6,21 +6,12 @@ https://isarn.github.io/isarn-sketches-spark/latest/api/#org.isarnproject.sketch
 
 ## How to use in your project
 
-#### sbt
 ``` scala
-resolvers += "isarn project" at "https://dl.bintray.com/isarn/maven/"
+// Note that the version of spark and python is part of the release name.
+// This example is for spark 2.2 and python 2.7:
+libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.2.0-sp2.2-py2.7"
 
-libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.1.0"
-```
-
-#### maven
-``` xml
-<dependency> 
-  <groupId>org.isarnproject</groupId>
-  <artifactId>isarn-sketches-spark_2.10</artifactId> 
-  <version>0.1.0</version>
-  <type>pom</type> 
-</dependency>
+// currently supported: python 2.7, 3.5, spark 2.1, 2.2, scala 2.10, 2.11
 ```
 
 ## Examples

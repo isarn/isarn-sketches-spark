@@ -8,7 +8,7 @@ val packageVersion = "0.2.0"
 
 val sparkVersion = "2.2.0"
 
-val pythonVersion = "2.7"
+val pythonVersion = "3.5"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
