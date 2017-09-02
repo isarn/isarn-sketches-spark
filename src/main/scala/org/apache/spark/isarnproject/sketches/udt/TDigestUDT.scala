@@ -37,6 +37,21 @@ case class TDigestSQL(tdigest: TDigest)
 class TDigestUDT extends UserDefinedType[TDigestSQL] {
   def userClass: Class[TDigestSQL] = classOf[TDigestSQL]
 
+  override def pyUDT: String = "isarnproject.sketches.udt.tdigest.TDigestUDT"
+
+  override def typeName: String = "tdigest"
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case _: TDigestUDT => true
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = classOf[TDigestUDT].getName.hashCode()
+
+  private[spark] override def asNullable: TDigestUDT = this
+
   def sqlType: DataType = StructType(
     StructField("delta", DoubleType, false) ::
     StructField("maxDiscrete", IntegerType, false) ::
@@ -94,6 +109,21 @@ case class TDigestArraySQL(tdigests: Array[TDigest])
  */
 class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
   def userClass: Class[TDigestArraySQL] = classOf[TDigestArraySQL]
+
+  override def pyUDT: String = "isarnproject.sketches.udt.tdigest.TDigestArrayUDT"
+
+  override def typeName: String = "tdigestarray"
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case _: TDigestArrayUDT => true
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = classOf[TDigestArrayUDT].getName.hashCode()
+
+  private[spark] override def asNullable: TDigestArrayUDT = this
 
   // Spark seems to have trouble with ArrayType data that isn't
   // serialized using UnsafeArrayData (SPARK-21277), so my workaround
