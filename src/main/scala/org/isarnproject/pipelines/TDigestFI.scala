@@ -17,10 +17,12 @@ import org.apache.spark.ml.{Estimator, Model, PredictionModel}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Dataset, DataFrame}
 
 import org.isarnproject.sketches.TDigest
-import org.apache.spark.isarnproject.sketches.udt.TDigestUDTInfra
+import org.apache.spark.isarnproject.sketches.udt._
+import org.isarnproject.sketches.udaf._
 
 private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritable {
 
@@ -97,5 +99,11 @@ class TDigestFIEstimator(
   def transformSchema(schema: StructType): StructType =
     this.validateAndTransformSchema(schema)
 
-  def fit(data: Dataset[_]): TDigestFIModel = ???
+  def fit(data: Dataset[_]): TDigestFIModel = {
+    transformSchema(data.schema, logging = true)
+    val udaf = tdigestMLVecUDAF.delta($(delta)).maxDiscrete($(maxDiscrete))
+    val agg = data.agg(udaf(col($(featuresCol))))
+    val tds = agg.first.getAs[TDigestArraySQL](0).tdigests
+    new TDigestFIModel(uid, tds, predModel)
+  }
 }
