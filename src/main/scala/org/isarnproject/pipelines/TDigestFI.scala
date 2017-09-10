@@ -101,7 +101,14 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
   def transformSchema(schema: StructType): StructType =
     this.validateAndTransformSchema(schema)
 
-  def transform(data: Dataset[_]): DataFrame = ???
+  def transform(data: Dataset[_]): DataFrame = {
+    transformSchema(data.schema, logging = true)
+    val udaf = new TDigestFIUDAF(featTDBC, predModelBC, (x1: Double, x2: Double) => math.abs(x1-x2))
+    val ti = data.agg(udaf(col($(featuresCol))))
+    val importances = ti.first.getAs[Array[Double]](0)
+    val names = (1 to importances.length).map { j => s"f$j" }
+    spark.createDataFrame(names.zip(importances)).toDF($(nameCol), $(importanceCol))
+  }
 
   override def finalize(): Unit = {
     featTDBC.unpersist
@@ -128,7 +135,9 @@ class TDigestFIEstimator[M <: PredictionModel[MLVector, M]](
     val udaf = tdigestMLVecUDAF.delta($(delta)).maxDiscrete($(maxDiscrete))
     val agg = data.agg(udaf(col($(featuresCol))))
     val tds = agg.first.getAs[TDigestArraySQL](0).tdigests
-    new TDigestFIModel(uid, tds, predModel, data.sparkSession)
+    val model = new TDigestFIModel(uid, tds, predModel, data.sparkSession)
+    model.setParent(this)
+    model
   }
 }
 
