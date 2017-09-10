@@ -13,12 +13,23 @@ limitations under the License.
 
 package org.isarnproject.pipelines
 
+//import scala.language.existentials
+import scala.reflect.ClassTag
+
 import org.apache.spark.ml.{Estimator, Model, PredictionModel}
+import org.apache.spark.ml.classification.ClassificationModel
+import org.apache.spark.ml.regression.RegressionModel
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.{Dataset, DataFrame}
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.ml.linalg.{Vector=>MLVector, DenseVector => MLDense}
+import org.apache.spark.sql.expressions.MutableAggregationBuffer
+import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
+import org.apache.spark.sql.Row
 
 import org.isarnproject.sketches.TDigest
 import org.apache.spark.isarnproject.sketches.udt._
@@ -72,38 +83,124 @@ private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritab
   }
 }
 
-class TDigestFIModel(
+class TDigestFIModel[M <: PredictionModel[MLVector, M]](
     override val uid: String,
-    private val model: Array[TDigest],
-    private val predModel: PredictionModel[_ , _ <: PredictionModel[_, _]]
-  ) extends Model[TDigestFIModel] with TDigestFIParams {
+    private val featTD: Array[TDigest],
+    private val predModel: M,
+    private val spark: SparkSession
+  )(implicit ctM: ClassTag[M]) extends Model[TDigestFIModel[M]] with TDigestFIParams {
 
-  override def copy(extra: ParamMap): TDigestFIModel = ???
+  private val featTDBC = spark.sparkContext.broadcast(featTD)
+  private val predModelBC = spark.sparkContext.broadcast(predModel)
+
+  private val predictMethod =
+    predModel.getClass.getDeclaredMethods.find(_.getName == "predict").get
+
+  override def copy(extra: ParamMap): TDigestFIModel[M] = ???
 
   def transformSchema(schema: StructType): StructType =
     this.validateAndTransformSchema(schema)
 
   def transform(data: Dataset[_]): DataFrame = ???
+
+  override def finalize(): Unit = {
+    featTDBC.unpersist
+    predModelBC.unpersist
+    super.finalize()
+  }
 }
 
-class TDigestFIEstimator(
+class TDigestFIEstimator[M <: PredictionModel[MLVector, M]](
     override val uid: String,
-    private val predModel: PredictionModel[_ , _ <: PredictionModel[_, _]]
-  ) extends Estimator[TDigestFIModel] with TDigestFIParams {
+    private val predModel: M
+  )(implicit ctM: ClassTag[M]) extends Estimator[TDigestFIModel[M]] with TDigestFIParams {
 
-  def this(pm: PredictionModel[_ , _ <: PredictionModel[_, _]]) =
+  def this(pm: M)(implicit ctM: ClassTag[M]) =
     this(Identifiable.randomUID("TDigestFI"), pm)
 
-  override def copy(extra: ParamMap): Estimator[TDigestFIModel] = ???
+  override def copy(extra: ParamMap): Estimator[TDigestFIModel[M]] = ???
 
   def transformSchema(schema: StructType): StructType =
     this.validateAndTransformSchema(schema)
 
-  def fit(data: Dataset[_]): TDigestFIModel = {
+  def fit(data: Dataset[_]): TDigestFIModel[M] = {
     transformSchema(data.schema, logging = true)
     val udaf = tdigestMLVecUDAF.delta($(delta)).maxDiscrete($(maxDiscrete))
     val agg = data.agg(udaf(col($(featuresCol))))
     val tds = agg.first.getAs[TDigestArraySQL](0).tdigests
-    new TDigestFIModel(uid, tds, predModel)
+    new TDigestFIModel(uid, tds, predModel, data.sparkSession)
+  }
+}
+
+class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
+    featTD: Broadcast[Array[TDigest]],
+    predModel: Broadcast[M],
+    deviation: (Double, Double) => Double
+  ) extends UserDefinedAggregateFunction {
+
+  private val m = featTD.value.length
+
+  private val predictMethod = {
+    val pm = predModel.value.getClass.getDeclaredMethods.find(_.getName == "predict").get
+    pm.setAccessible(true)
+    pm
+  }
+
+  def deterministic: Boolean = false
+
+  def inputSchema: StructType =
+    StructType(StructField("features", TDigestUDTInfra.udtVectorML, false) :: Nil)
+
+  def dataType: DataType = ArrayType(DoubleType, false)
+
+  def bufferSchema: StructType =
+    StructType(
+      StructField("dev", ArrayType(DoubleType, false), false) ::
+      StructField("n", LongType, false) ::
+      Nil)
+
+  def initialize(buf: MutableAggregationBuffer): Unit = {
+    buf(0) = Array.fill(m)(0.0)
+    buf(1) = 0L
+  }
+
+  def update(buf: MutableAggregationBuffer, input: Row): Unit = {
+    val ftd = featTD.value
+    val model = predModel.value
+    val dev = buf.getAs[Array[Double]](0)
+    val n = buf.getAs[Long](1)
+    val farr = input.getAs[MLVector](0).toArray
+    val fvec = (new MLDense(farr)).asInstanceOf[AnyRef]
+    val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
+    for { j <- 0 until m } {
+      val t = farr(j)
+      farr(j) = ftd(j).sample
+      val pred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
+      farr(j) = t
+      dev(j) += deviation(refpred, pred)
+    }
+    buf(0) = dev
+    buf(1) = n + 1
+  }
+
+  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
+    val dev1 = buf1.getAs[Array[Double]](0)
+    val dev2 = buf2.getAs[Array[Double]](0)
+    val n1 = buf1.getAs[Long](1)
+    val n2 = buf2.getAs[Long](1)    
+    for { j <- 0 until m } {
+      dev1(j) += dev2(j)
+    }
+    buf1(0) = dev1
+    buf1(1) = n1 + n2
+  }
+
+  def evaluate(buf: Row): Any = {
+    val dev = buf.getAs[Array[Double]](0)
+    val n = buf.getAs[Long](1).toDouble
+    for { j <- 0 until m } {
+      dev(j) /= n
+    }
+    dev
   }
 }
