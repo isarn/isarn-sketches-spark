@@ -85,9 +85,9 @@ private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritab
 
 class TDigestFIModel[M <: PredictionModel[MLVector, M]](
     override val uid: String,
-    private val featTD: Array[TDigest],
-    private val predModel: M,
-    private val spark: SparkSession
+    featTD: Array[TDigest],
+    predModel: M,
+    spark: SparkSession
   )(implicit ctM: ClassTag[M]) extends Model[TDigestFIModel[M]] with TDigestFIParams {
 
   private val featTDBC = spark.sparkContext.broadcast(featTD)
@@ -116,7 +116,7 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
 
 class TDigestFI[M <: PredictionModel[MLVector, M]](
     override val uid: String,
-    private val predModel: M
+    predModel: M
   )(implicit ctM: ClassTag[M]) extends Estimator[TDigestFIModel[M]] with TDigestFIParams {
 
   def this(pm: M)(implicit ctM: ClassTag[M]) =
