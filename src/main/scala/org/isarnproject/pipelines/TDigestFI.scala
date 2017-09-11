@@ -201,6 +201,7 @@ class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
     val dev = buf.getAs[WrappedArray[Double]](0)
     val n = buf.getAs[Long](1)
     val farr = input.getAs[MLVector](0).toArray
+    require(farr.length == m, "bad feature vector length ${farr.length}")
     val fvec = (new MLDense(farr)).asInstanceOf[AnyRef]
     val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
     for { j <- 0 until m } {
