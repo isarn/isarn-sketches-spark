@@ -72,6 +72,12 @@ private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritab
   final def getDeviationMeasure: String = $(deviationMeasure)
   final def setDeviationMeasure(value: String): this.type = set(deviationMeasure, value)
 
+  final val featureNames: StringArrayParam =
+    new StringArrayParam(this, "featureNames", "assume these feature names")
+  setDefault(featureNames, Array.empty[String])
+  final def getFeatureNames: Array[String] = $(featureNames)
+  final def setFeatureNames(value: Array[String]): this.type = set(featureNames, value)
+
   protected def validateAndTransformSchema(schema: StructType): StructType = {
     // we want the input column to exist...
     require(schema.fieldNames.contains($(featuresCol)))
@@ -123,9 +129,11 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
     val udaf = new TDigestFIUDAF(featTDBC, predModelBC, deviation)
     val ti = data.agg(udaf(col($(featuresCol))))
     val imp = ti.first.get(0).asInstanceOf[WrappedArray[Double]]
-    val importances = if ($(deviationMeasure) != "rmse") imp else imp.map { x => math.sqrt(x) }
-    val names = (1 to importances.length).map { j => s"f$j" }
-    spark.createDataFrame(names.zip(importances)).toDF($(nameCol), $(importanceCol))
+    val importances = if ($(deviationMeasure) != "rms-dev") imp else imp.map { x => math.sqrt(x) }
+    val featNames: Seq[String] =
+      if ($(featureNames).length > 0) $(featureNames) else (1 to featTD.length).map { j => s"f$j" }    
+    require(featNames.length == featTD.length, s"expecting ${featTD.length} feature names")
+    spark.createDataFrame(featNames.zip(importances)).toDF($(nameCol), $(importanceCol))
   }
 
   override def finalize(): Unit = {
