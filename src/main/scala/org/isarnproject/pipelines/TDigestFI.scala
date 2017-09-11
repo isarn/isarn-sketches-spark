@@ -66,6 +66,12 @@ private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritab
   final def getImportanceCol: String = $(importanceCol)
   final def setImportanceCol(value: String): this.type = set(importanceCol, value)
 
+  final val deviationMeasure: Param[String] =
+    new Param[String](this, "deviationMeasure", "deviation measure to apply")
+  setDefault(deviationMeasure, "auto")
+  final def getDeviationMeasure: String = $(deviationMeasure)
+  final def setDeviationMeasure(value: String): this.type = set(deviationMeasure, value)
+
   protected def validateAndTransformSchema(schema: StructType): StructType = {
     // we want the input column to exist...
     require(schema.fieldNames.contains($(featuresCol)))
@@ -93,6 +99,20 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
   private val featTDBC = spark.sparkContext.broadcast(featTD)
   private val predModelBC = spark.sparkContext.broadcast(predModel)
 
+  private val deviation: (Double, Double) => Double = $(deviationMeasure) match {
+    case "mean-abs-dev" => (x1: Double, x2: Double) => math.abs(x1 - x2)
+    case "rms-dev" => (x1: Double, x2: Double) => math.pow(x1 - x2, 2)
+    case "dev-rate" => (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
+    case "auto" => {
+      inheritances(predModel) match {
+        case ih if ih.contains("RegressionModel") => (x1: Double, x2: Double) => math.abs(x1 - x2)
+        case ih if ih.contains("ClassificationModel") => (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
+        case _ => throw new Exception(s"bad model class ${predModel.getClass.getSimpleName}")
+      }
+    }
+    case _ => throw new Exception(s"bad deviation measure ${this.getDeviationMeasure}")
+  }
+
   override def copy(extra: ParamMap): TDigestFIModel[M] = ???
 
   def transformSchema(schema: StructType): StructType =
@@ -100,9 +120,10 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
 
   def transform(data: Dataset[_]): DataFrame = {
     transformSchema(data.schema, logging = true)
-    val udaf = new TDigestFIUDAF(featTDBC, predModelBC, (x1: Double, x2: Double) => math.abs(x1-x2))
+    val udaf = new TDigestFIUDAF(featTDBC, predModelBC, deviation)
     val ti = data.agg(udaf(col($(featuresCol))))
-    val importances = ti.first.get(0).asInstanceOf[WrappedArray[Double]]
+    val imp = ti.first.get(0).asInstanceOf[WrappedArray[Double]]
+    val importances = if ($(deviationMeasure) != "rmse") imp else imp.map { x => math.sqrt(x) }
     val names = (1 to importances.length).map { j => s"f$j" }
     spark.createDataFrame(names.zip(importances)).toDF($(nameCol), $(importanceCol))
   }
