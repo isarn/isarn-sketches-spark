@@ -16,7 +16,7 @@ package org.isarnproject
 import scala.language.existentials
 
 package object pipelines {
-  def inheritances(obj: Any): Seq[String] = {
+  private[pipelines] def inheritances(obj: Any): Seq[String] = {
     var ih: List[Class[_]] = Nil
     var sc = obj.getClass.getSuperclass
     while (sc != null) {
