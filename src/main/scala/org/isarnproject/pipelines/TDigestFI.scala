@@ -93,9 +93,6 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
   private val featTDBC = spark.sparkContext.broadcast(featTD)
   private val predModelBC = spark.sparkContext.broadcast(predModel)
 
-  private val predictMethod =
-    predModel.getClass.getDeclaredMethods.find(_.getName == "predict").get
-
   override def copy(extra: ParamMap): TDigestFIModel[M] = ???
 
   def transformSchema(schema: StructType): StructType =
