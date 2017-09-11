@@ -117,7 +117,7 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
   }
 }
 
-class TDigestFIEstimator[M <: PredictionModel[MLVector, M]](
+class TDigestFI[M <: PredictionModel[MLVector, M]](
     override val uid: String,
     private val predModel: M
   )(implicit ctM: ClassTag[M]) extends Estimator[TDigestFIModel[M]] with TDigestFIParams {
@@ -220,7 +220,7 @@ object test {
       val data = spark.createDataFrame(raw.map { v => new MLDense(v) }.zip(rawlab)).toDF("features", "label")
       val lr = new LinearRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
       val lrModel = lr.fit(data)
-      val fi = new TDigestFIEstimator(lrModel)
+      val fi = new TDigestFI(lrModel)
       val fiModel = fi.fit(data)
       val imp = fiModel.transform(data)
     }
