@@ -13,8 +13,8 @@ limitations under the License.
 
 package org.isarnproject.pipelines
 
-//import scala.language.existentials
 import scala.reflect.ClassTag
+import scala.collection.mutable.WrappedArray
 
 import org.apache.spark.ml.{Estimator, Model, PredictionModel}
 import org.apache.spark.ml.classification.ClassificationModel
@@ -105,7 +105,7 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
     transformSchema(data.schema, logging = true)
     val udaf = new TDigestFIUDAF(featTDBC, predModelBC, (x1: Double, x2: Double) => math.abs(x1-x2))
     val ti = data.agg(udaf(col($(featuresCol))))
-    val importances = ti.first.getAs[Array[Double]](0)
+    val importances = ti.first.get(0).asInstanceOf[WrappedArray[Double]]
     val names = (1 to importances.length).map { j => s"f$j" }
     spark.createDataFrame(names.zip(importances)).toDF($(nameCol), $(importanceCol))
   }
@@ -149,12 +149,6 @@ class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
 
   private val m = featTD.value.length
 
-  private val predictMethod = {
-    val pm = predModel.value.getClass.getDeclaredMethods.find(_.getName == "predict").get
-    pm.setAccessible(true)
-    pm
-  }
-
   def deterministic: Boolean = false
 
   def inputSchema: StructType =
@@ -169,14 +163,16 @@ class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
       Nil)
 
   def initialize(buf: MutableAggregationBuffer): Unit = {
-    buf(0) = Array.fill(m)(0.0)
+    buf(0) =  WrappedArray.make[Double](Array.fill(m)(0.0))
     buf(1) = 0L
   }
 
   def update(buf: MutableAggregationBuffer, input: Row): Unit = {
     val ftd = featTD.value
     val model = predModel.value
-    val dev = buf.getAs[Array[Double]](0)
+    val predictMethod = model.getClass.getDeclaredMethods.find(_.getName == "predict").get
+    predictMethod.setAccessible(true)
+    val dev = buf.getAs[WrappedArray[Double]](0)
     val n = buf.getAs[Long](1)
     val farr = input.getAs[MLVector](0).toArray
     val fvec = (new MLDense(farr)).asInstanceOf[AnyRef]
@@ -193,8 +189,8 @@ class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
   }
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    val dev1 = buf1.getAs[Array[Double]](0)
-    val dev2 = buf2.getAs[Array[Double]](0)
+    val dev1 = buf1.getAs[WrappedArray[Double]](0)
+    val dev2 = buf2.getAs[WrappedArray[Double]](0)
     val n1 = buf1.getAs[Long](1)
     val n2 = buf2.getAs[Long](1)    
     for { j <- 0 until m } {
@@ -205,11 +201,28 @@ class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
   }
 
   def evaluate(buf: Row): Any = {
-    val dev = buf.getAs[Array[Double]](0)
+    val dev = buf.getAs[WrappedArray[Double]](0)
     val n = buf.getAs[Long](1).toDouble
     for { j <- 0 until m } {
       dev(j) /= n
     }
     dev
+  }
+}
+
+object test {
+  import scala.util.Random
+  import org.apache.spark.ml.regression.LinearRegression
+  def apply(spark: SparkSession) = {
+    new AnyRef {
+      val raw = Vector.fill(1000) { Array.fill(3) { Random.nextGaussian() } }
+      val rawlab = raw.map { v => 3 * v(0) + 5 * v(1) - 7 * v(2) + 11 }
+      val data = spark.createDataFrame(raw.map { v => new MLDense(v) }.zip(rawlab)).toDF("features", "label")
+      val lr = new LinearRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
+      val lrModel = lr.fit(data)
+      val fi = new TDigestFIEstimator(lrModel)
+      val fiModel = fi.fit(data)
+      val imp = fiModel.transform(data)
+    }
   }
 }
