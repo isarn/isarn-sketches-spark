@@ -196,12 +196,19 @@ class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
   def update(buf: MutableAggregationBuffer, input: Row): Unit = {
     val ftd = featTD.value
     val model = predModel.value
+    // The 'predict' method is part of the generic PredictionModel interface,
+    // however it is protected, so I have to force the issue using reflection.
+    // Method is not serializable, so I have to do it inside the update function each time.
     val predictMethod = model.getClass.getDeclaredMethods.find(_.getName == "predict").get
     predictMethod.setAccessible(true)
     val dev = buf.getAs[WrappedArray[Double]](0)
     val n = buf.getAs[Long](1)
     val farr = input.getAs[MLVector](0).toArray
     require(farr.length == m, "bad feature vector length ${farr.length}")
+    // Declaring a dense vector around 'farr' allows me to overwrite individual
+    // feature values below. This works because dense vec just wraps the underlying
+    // array value. If the implementation of dense vec changes, this could break,
+    // although it seems unlikely.
     val fvec = (new MLDense(farr)).asInstanceOf[AnyRef]
     val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
     for { j <- 0 until m } {
