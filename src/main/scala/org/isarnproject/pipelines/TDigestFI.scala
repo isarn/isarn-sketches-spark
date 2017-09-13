@@ -95,17 +95,17 @@ private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritab
   }
 }
 
-class TDigestFIModel[M <: PredictionModel[MLVector, M]](
+class TDigestFIModel(
     override val uid: String,
     featTD: Array[TDigest],
-    predModel: M,
+    predModel: AnyRef,
     spark: SparkSession
-  )(implicit ctM: ClassTag[M]) extends Model[TDigestFIModel[M]] with TDigestFIParams {
+  ) extends Model[TDigestFIModel] with TDigestFIParams {
 
   private val featTDBC = spark.sparkContext.broadcast(featTD)
   private val predModelBC = spark.sparkContext.broadcast(predModel)
 
-  private val deviation: (Double, Double) => Double = $(deviationMeasure) match {
+  private def deviation: (Double, Double) => Double = $(deviationMeasure) match {
     case "mean-abs-dev" => (x1: Double, x2: Double) => math.abs(x1 - x2)
     case "rms-dev" => (x1: Double, x2: Double) => math.pow(x1 - x2, 2)
     case "dev-rate" => (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
@@ -119,7 +119,7 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
     case _ => throw new Exception(s"bad deviation measure ${this.getDeviationMeasure}")
   }
 
-  override def copy(extra: ParamMap): TDigestFIModel[M] = ???
+  override def copy(extra: ParamMap): TDigestFIModel = ???
 
   def transformSchema(schema: StructType): StructType =
     this.validateAndTransformSchema(schema)
@@ -143,20 +143,20 @@ class TDigestFIModel[M <: PredictionModel[MLVector, M]](
   }
 }
 
-class TDigestFI[M <: PredictionModel[MLVector, M]](
+class TDigestFI(
     override val uid: String,
-    predModel: M
-  )(implicit ctM: ClassTag[M]) extends Estimator[TDigestFIModel[M]] with TDigestFIParams {
+    predModel: AnyRef
+  ) extends Estimator[TDigestFIModel] with TDigestFIParams {
 
-  def this(pm: M)(implicit ctM: ClassTag[M]) =
+  def this(pm: AnyRef) =
     this(Identifiable.randomUID("TDigestFI"), pm)
 
-  override def copy(extra: ParamMap): Estimator[TDigestFIModel[M]] = ???
+  override def copy(extra: ParamMap): Estimator[TDigestFIModel] = ???
 
   def transformSchema(schema: StructType): StructType =
     this.validateAndTransformSchema(schema)
 
-  def fit(data: Dataset[_]): TDigestFIModel[M] = {
+  def fit(data: Dataset[_]): TDigestFIModel = {
     transformSchema(data.schema, logging = true)
     val udaf = tdigestMLVecUDAF.delta($(delta)).maxDiscrete($(maxDiscrete))
     val agg = data.agg(udaf(col($(featuresCol))))
@@ -167,9 +167,9 @@ class TDigestFI[M <: PredictionModel[MLVector, M]](
   }
 }
 
-class TDigestFIUDAF[M <: PredictionModel[MLVector, M]](
+class TDigestFIUDAF(
     featTD: Broadcast[Array[TDigest]],
-    predModel: Broadcast[M],
+    predModel: Broadcast[AnyRef],
     deviation: (Double, Double) => Double
   ) extends UserDefinedAggregateFunction {
 
