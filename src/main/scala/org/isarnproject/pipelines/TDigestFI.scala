@@ -35,81 +35,82 @@ import org.isarnproject.sketches.TDigest
 import org.apache.spark.isarnproject.sketches.udt._
 import org.isarnproject.sketches.udaf._
 
-private[pipelines] trait TDigestFIParams extends Params with DefaultParamsWritable {
-
-  final val model: Param[AnyRef] = new Param[AnyRef](this, "model", "predictive model")
-  // no default for this
-  final def getModel: AnyRef = $(model)
-  final def setModel(value: AnyRef): this.type = {
-    if (!inheritances(value).contains("PredictionModel")) {
-       throw new Exception("model must be a subclass of PredictionModel")
-    }
-    set(model, value)
+// Defining these in a subpackage so the package can have other
+// param definitions added to it elsewhere. I'm keeping them visible
+// so other packages can use them in the future if there is a use
+package params {
+  trait HasFeaturesCol extends Params with DefaultParamsWritable {
+    final val featuresCol: Param[String] =
+      new Param[String](this, "featuresCol", "feature column name")
+    setDefault(featuresCol, "features")
+    final def getFeaturesCol: String = $(featuresCol)
+    final def setFeaturesCol(value: String): this.type = set(featuresCol, value)
   }
 
-  final val delta: DoubleParam =
-    new DoubleParam(this, "delta", "t-digest compression (> 0)", ParamValidators.gt(0.0))
-  setDefault(delta, org.isarnproject.sketches.TDigest.deltaDefault)
-  final def getDelta: Double = $(delta)
-  final def setDelta(value: Double): this.type = set(delta, value)
+  trait TDigestParams extends Params with DefaultParamsWritable {
+    final val delta: DoubleParam =
+      new DoubleParam(this, "delta", "t-digest compression (> 0)", ParamValidators.gt(0.0))
+    setDefault(delta, org.isarnproject.sketches.TDigest.deltaDefault)
+    final def getDelta: Double = $(delta)
+    final def setDelta(value: Double): this.type = set(delta, value)
 
-  final val maxDiscrete: IntParam =
-    new IntParam(this, "maxDiscrete", "maximum unique discrete values (>= 0)", ParamValidators.gtEq(0))
-  setDefault(maxDiscrete, 0)
-  final def getMaxDiscrete: Int = $(maxDiscrete)
-  final def setMaxDiscrete(value: Int): this.type = set(maxDiscrete, value)
+    final val maxDiscrete: IntParam =
+      new IntParam(this, "maxDiscrete", "maximum unique discrete values (>= 0)",
+        ParamValidators.gtEq(0))
+    setDefault(maxDiscrete, 0)
+    final def getMaxDiscrete: Int = $(maxDiscrete)
+    final def setMaxDiscrete(value: Int): this.type = set(maxDiscrete, value)
+  }
 
-  final val featuresCol: Param[String] = new Param[String](this, "featuresCol", "feature column name")
-  setDefault(featuresCol, "features")
-  final def getFeaturesCol: String = $(featuresCol)
-  final def setFeaturesCol(value: String): this.type = set(featuresCol, value)
+  trait TDigestFIParams extends Params with TDigestParams with HasFeaturesCol
 
-  final val nameCol: Param[String] =
-    new Param[String](this, "nameCol", "column for names of features")
-  setDefault(nameCol, "name")
-  final def getNameCol: String = $(nameCol)
-  final def setNameCol(value: String): this.type = set(nameCol, value)
+  trait TDigestFIModelParams extends Params
+      with HasFeaturesCol with DefaultParamsWritable {
 
-  final val importanceCol: Param[String] =
-    new Param[String](this, "importance", "column for feature importance values")
-  setDefault(importanceCol, "importance")
-  final def getImportanceCol: String = $(importanceCol)
-  final def setImportanceCol(value: String): this.type = set(importanceCol, value)
-
-  final val deviationMeasure: Param[String] =
-    new Param[String](this, "deviationMeasure", "deviation measure to apply")
-  setDefault(deviationMeasure, "auto")
-  final def getDeviationMeasure: String = $(deviationMeasure)
-  final def setDeviationMeasure(value: String): this.type = set(deviationMeasure, value)
-
-  final val featureNames: StringArrayParam =
-    new StringArrayParam(this, "featureNames", "assume these feature names")
-  setDefault(featureNames, Array.empty[String])
-  final def getFeatureNames: Array[String] = $(featureNames)
-  final def setFeatureNames(value: Array[String]): this.type = set(featureNames, value)
-
-  protected def validateAndTransformSchema(schema: StructType): StructType = {
-    // we want the input column to exist...
-    require(schema.fieldNames.contains($(featuresCol)))
-
-    // ...and to be the proper type
-    schema($(featuresCol)) match {
-      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+    final val targetModel: Param[AnyRef] =
+      new Param[AnyRef](this, "targetModel", "predictive model")
+    // no default for this
+    final def getModel: AnyRef = $(targetModel)
+    final def setModel(value: AnyRef): this.type = {
+      if (!inheritances(value).contains("PredictionModel")) {
+         throw new Exception("model must be a subclass of PredictionModel")
+      }
+      set(targetModel, value)
     }
 
-    // output is two columns: feature names and corresponding importances
-    StructType(Seq(
-      StructField($(nameCol), StringType, false),
-      StructField($(importanceCol), DoubleType, false)
-    ))
+    final val nameCol: Param[String] =
+      new Param[String](this, "nameCol", "column for names of features")
+    setDefault(nameCol, "name")
+    final def getNameCol: String = $(nameCol)
+    final def setNameCol(value: String): this.type = set(nameCol, value)
+
+    final val importanceCol: Param[String] =
+      new Param[String](this, "importanceCol", "column for feature importance values")
+    setDefault(importanceCol, "importance")
+    final def getImportanceCol: String = $(importanceCol)
+    final def setImportanceCol(value: String): this.type = set(importanceCol, value)
+
+    final val deviationMeasure: Param[String] =
+      new Param[String](this, "deviationMeasure", "deviation measure to apply")
+    setDefault(deviationMeasure, "auto")
+    final def getDeviationMeasure: String = $(deviationMeasure)
+    final def setDeviationMeasure(value: String): this.type = set(deviationMeasure, value)
+
+    final val featureNames: StringArrayParam =
+      new StringArrayParam(this, "featureNames", "assume these feature names")
+    setDefault(featureNames, Array.empty[String])
+    final def getFeatureNames: Array[String] = $(featureNames)
+    final def setFeatureNames(value: Array[String]): this.type = set(featureNames, value)
   }
 }
+
+import params._
 
 class TDigestFIModel(
     override val uid: String,
     featTD: Array[TDigest],
     spark: SparkSession
-  ) extends Model[TDigestFIModel] with TDigestFIParams {
+  ) extends Model[TDigestFIModel] with TDigestFIModelParams {
 
   private val featTDBC = spark.sparkContext.broadcast(featTD)
 
@@ -118,10 +119,13 @@ class TDigestFIModel(
     case "rms-dev" => (x1: Double, x2: Double) => math.pow(x1 - x2, 2)
     case "dev-rate" => (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
     case "auto" => {
-      inheritances($(model)) match {
-        case ih if ih.contains("RegressionModel") => (x1: Double, x2: Double) => math.abs(x1 - x2)
-        case ih if ih.contains("ClassificationModel") => (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
-        case _ => throw new Exception(s"bad model class ${this.getModel.getClass.getSimpleName}")
+      inheritances($(targetModel)) match {
+        case ih if ih.contains("RegressionModel") =>
+          (x1: Double, x2: Double) => math.abs(x1 - x2)
+        case ih if ih.contains("ClassificationModel") =>
+          (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
+        case _ =>
+          throw new Exception(s"bad model class ${this.getModel.getClass.getSimpleName}")
       }
     }
     case _ => throw new Exception(s"bad deviation measure ${this.getDeviationMeasure}")
@@ -129,18 +133,32 @@ class TDigestFIModel(
 
   override def copy(extra: ParamMap): TDigestFIModel = ???
 
-  def transformSchema(schema: StructType): StructType =
-    this.validateAndTransformSchema(schema)
+  def transformSchema(schema: StructType): StructType = {
+    require(schema.fieldNames.contains($(featuresCol)))
+    schema($(featuresCol)) match {
+      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+    }
+
+    // Output is two columns: feature names and corresponding importances
+    StructType(Seq(
+      StructField($(nameCol), StringType, false),
+      StructField($(importanceCol), DoubleType, false)
+    ))
+  }
 
   def transform(data: Dataset[_]): DataFrame = {
     transformSchema(data.schema, logging = true)
-    val modelBC = spark.sparkContext.broadcast($(model))
+    val modelBC = spark.sparkContext.broadcast($(targetModel))
     val udaf = new TDigestFIUDAF(featTDBC, modelBC, deviation)
     val ti = data.agg(udaf(col($(featuresCol))))
     val imp = ti.first.get(0).asInstanceOf[WrappedArray[Double]]
     val importances = if ($(deviationMeasure) != "rms-dev") imp else imp.map { x => math.sqrt(x) }
     val featNames: Seq[String] =
-      if ($(featureNames).length > 0) $(featureNames) else (1 to featTD.length).map { j => s"f$j" }    
+      if ($(featureNames).length > 0) {
+        $(featureNames)
+      } else {
+        (1 to featTD.length).map { j => s"f$j" }
+      }
     require(featNames.length == featTD.length, s"expecting ${featTD.length} feature names")
     modelBC.unpersist
     spark.createDataFrame(featNames.zip(importances)).toDF($(nameCol), $(importanceCol))
@@ -158,8 +176,15 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
 
   override def copy(extra: ParamMap): Estimator[TDigestFIModel] = ???
 
-  def transformSchema(schema: StructType): StructType =
-    this.validateAndTransformSchema(schema)
+  def transformSchema(schema: StructType): StructType = {
+    require(schema.fieldNames.contains($(featuresCol)))
+    schema($(featuresCol)) match {
+      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+    }
+    // I can't figure out the purpose for outputting a modified schema here.
+    // Until further notice I'm going to output an empty one.
+    StructType(Seq.empty[StructField])
+  }
 
   def fit(data: Dataset[_]): TDigestFIModel = {
     transformSchema(data.schema, logging = true)
@@ -256,7 +281,9 @@ object test {
     new AnyRef {
       val raw = Vector.fill(1000) { Array.fill(3) { Random.nextGaussian() } }
       val rawlab = raw.map { v => 3 * v(0) + 5 * v(1) - 7 * v(2) + 11 }
-      val data = spark.createDataFrame(raw.map { v => new MLDense(v) }.zip(rawlab)).toDF("features", "label")
+      val data = spark.createDataFrame(raw.map { v => new MLDense(v) }
+        .zip(rawlab))
+        .toDF("features", "label")
       val lr = new LinearRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
       val lrModel = lr.fit(data)
       val fi = new TDigestFI()
