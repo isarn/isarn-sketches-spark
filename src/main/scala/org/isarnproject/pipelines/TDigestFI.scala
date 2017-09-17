@@ -91,8 +91,8 @@ package params {
     final val targetModel: Param[AnyRef] =
       new Param[AnyRef](this, "targetModel", "predictive model")
     // no default for this
-    final def getModel: AnyRef = $(targetModel)
-    final def setModel(value: AnyRef): this.type = {
+    final def getTargetModel: AnyRef = $(targetModel)
+    final def setTargetModel(value: AnyRef): this.type = {
       if (!inheritances(value).contains("PredictionModel")) {
          throw new Exception("model must be a subclass of PredictionModel")
       }
@@ -171,7 +171,7 @@ class TDigestFIModel(
         case ih if ih.contains("ClassificationModel") =>
           (x1: Double, x2: Double) => if (x1 != x2) 1.0 else 0.0
         case _ =>
-          throw new Exception(s"bad model class ${this.getModel.getClass.getSimpleName}")
+          throw new Exception(s"bad model class ${this.getTargetModel.getClass.getSimpleName}")
       }
     }
     case _ => throw new Exception(s"bad deviation measure ${this.getDeviationMeasure}")
@@ -337,7 +337,7 @@ object test {
       val lrModel = lr.fit(data)
       val fi = new TDigestFI()
       val fiModel = fi.fit(data)
-      val imp = fiModel.setModel(lrModel).transform(data)
+      val imp = fiModel.setTargetModel(lrModel).transform(data)
     }
   }
 }
