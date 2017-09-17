@@ -40,6 +40,12 @@ import org.isarnproject.sketches.udaf._
 // so other packages can use them in the future if there is a use
 package params {
   trait HasFeaturesCol extends Params with DefaultParamsWritable {
+
+    /**
+     * Column containing feature vectors. Expected type is ML Vector.
+     * Defaults to "features"
+     * @group param
+     */
     final val featuresCol: Param[String] =
       new Param[String](this, "featuresCol", "feature column name")
     setDefault(featuresCol, "features")
@@ -48,12 +54,22 @@ package params {
   }
 
   trait TDigestParams extends Params with DefaultParamsWritable {
+    /**
+     * TDigest compression parameter.
+     * Defaults to 0.5
+     * @group param
+     */
     final val delta: DoubleParam =
       new DoubleParam(this, "delta", "t-digest compression (> 0)", ParamValidators.gt(0.0))
     setDefault(delta, org.isarnproject.sketches.TDigest.deltaDefault)
     final def getDelta: Double = $(delta)
     final def setDelta(value: Double): this.type = set(delta, value)
 
+    /**
+     * Maximum number of discrete values to sketch before transitioning to continuous mode
+     * Defaults to 0
+     * @group param
+     */
     final val maxDiscrete: IntParam =
       new IntParam(this, "maxDiscrete", "maximum unique discrete values (>= 0)",
         ParamValidators.gtEq(0))
@@ -67,6 +83,11 @@ package params {
   trait TDigestFIModelParams extends Params
       with HasFeaturesCol with DefaultParamsWritable {
 
+    /**
+     * A predictive model to compute variable importances against.
+     * No default.
+     * @group param
+     */
     final val targetModel: Param[AnyRef] =
       new Param[AnyRef](this, "targetModel", "predictive model")
     // no default for this
@@ -78,24 +99,45 @@ package params {
       set(targetModel, value)
     }
 
+    /**
+     * Column name to use for feature names.
+     * Defaults to "name"
+     * @group param
+     */
     final val nameCol: Param[String] =
       new Param[String](this, "nameCol", "column for names of features")
     setDefault(nameCol, "name")
     final def getNameCol: String = $(nameCol)
     final def setNameCol(value: String): this.type = set(nameCol, value)
 
+    /**
+     * Column name to use for feature importances.
+     * Defaults to "importance"
+     * @group param
+     */
     final val importanceCol: Param[String] =
       new Param[String](this, "importanceCol", "column for feature importance values")
     setDefault(importanceCol, "importance")
     final def getImportanceCol: String = $(importanceCol)
     final def setImportanceCol(value: String): this.type = set(importanceCol, value)
 
+    /**
+     * Function to measure the change resulting from randomizing a feature value.
+     * Defaults to "auto" (detects whether model is regression or classification).
+     * Options: "auto", "dev-rate" (class), "abs-dev" (reg), "rms-dev" (reg)
+     * @group param
+     */
     final val deviationMeasure: Param[String] =
       new Param[String](this, "deviationMeasure", "deviation measure to apply")
     setDefault(deviationMeasure, "auto")
     final def getDeviationMeasure: String = $(deviationMeasure)
     final def setDeviationMeasure(value: String): this.type = set(deviationMeasure, value)
 
+    /**
+     * Names to use for features.
+     * Defaults to f1, f2, ...
+     * @group param
+     */
     final val featureNames: StringArrayParam =
       new StringArrayParam(this, "featureNames", "assume these feature names")
     setDefault(featureNames, Array.empty[String])
@@ -106,6 +148,10 @@ package params {
 
 import params._
 
+/**
+ * Model/Transformer for transforming input feature data into a DataFrame containing
+ * "name" and "importance" columns, mapping feature name to its computed importance.
+ */
 class TDigestFIModel(
     override val uid: String,
     featTD: Array[TDigest],
@@ -170,6 +216,9 @@ class TDigestFIModel(
   }
 }
 
+/**
+ * An Estimator for creating a TDigestFI model from feature data.
+ */
 class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with TDigestFIParams {
 
   def this() = this(Identifiable.randomUID("TDigestFI"))
