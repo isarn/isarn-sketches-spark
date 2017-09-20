@@ -26,7 +26,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.ml.linalg.{Vector=>MLVector, DenseVector => MLDense}
+import org.apache.spark.ml.linalg.{Vector => MLVector,
+  DenseVector => MLDense, SparseVector => MLSparse}
 import org.apache.spark.sql.expressions.MutableAggregationBuffer
 import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
 import org.apache.spark.sql.Row
@@ -236,10 +237,38 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
   }
 
   def fit(data: Dataset[_]): TDigestFIModel = {
-    transformSchema(data.schema, logging = true)
-    val udaf = tdigestMLVecUDAF.delta($(delta)).maxDiscrete($(maxDiscrete))
-    val agg = data.agg(udaf(col($(featuresCol))))
-    val tds = agg.first.getAs[TDigestArraySQL](0).tdigests
+    val tds = data.select(col($(featuresCol))).rdd
+      .aggregate(Array.empty[TDigest])({ case (ttd, Row(fv: MLVector)) =>
+        val m = fv.size
+        val td =
+          if (ttd.length > 0) ttd else Array.fill(m)(TDigest.empty($(delta), $(maxDiscrete)))
+        require(td.length == m, "Inconsistent feature vector size $m")
+        fv match {
+          case v: MLSparse =>
+            var jBeg = 0
+            v.foreachActive((j, x) => {
+              for { k <- jBeg until j } { td(k) += 0.0 }
+              td(j) += x
+              jBeg = j + 1
+            })
+            for { k <- jBeg until v.size } { td(k) += 0.0 }
+          case _ =>
+            for { j <- 0 until fv.size } { td(j) += fv(j) }
+        }
+        td
+      },
+      (td1, td2) =>
+        if (td1.length == 0) {
+          td2
+        } else if (td2.length == 0) {
+          td1
+        } else {
+          require(td1.length == td2.length, "mismatched t-digest arrays")
+          for { j <- 0 until td1.length } {
+            td1(j) ++= td2(j)
+          }
+          td1
+        })
     val model = new TDigestFIModel(uid, tds, data.sparkSession)
     model.setParent(this)
     model
