@@ -196,9 +196,42 @@ class TDigestFIModel(
   def transform(data: Dataset[_]): DataFrame = {
     transformSchema(data.schema, logging = true)
     val modelBC = spark.sparkContext.broadcast($(targetModel))
-    val udaf = new TDigestFIUDAF(featTDBC, modelBC, deviation)
-    val ti = data.agg(udaf(col($(featuresCol))))
-    val imp = ti.first.get(0).asInstanceOf[WrappedArray[Double]]
+    val fdev = deviation
+    val (n, imp) = data.select(col($(featuresCol))).rdd.mapPartitions { (fvp: Iterator[Row]) =>
+      val ftd = featTDBC.value
+      val model = modelBC.value
+      // The 'predict' method is part of the generic PredictionModel interface,
+      // however it is protected, so I have to force the issue using reflection.
+      // 'Method' is not serializable, so I have to do it inside this map
+      val predictMethod = model.getClass.getDeclaredMethods.find(_.getName == "predict").get
+      predictMethod.setAccessible(true)
+      val m = ftd.length
+      val (n, dev) = fvp.foldLeft((0L, Array.fill(m)(0.0))) { case ((n, dev), Row(fv: MLVector)) =>
+        val farr = fv.toArray
+        require(farr.length == m, "bad feature vector length ${farr.length}")
+        // Declaring a dense vector around 'farr' allows me to overwrite individual
+        // feature values below. This works because dense vec just wraps the underlying
+        // array value. If the implementation of dense vec changes, this could break,
+        // although it seems unlikely.
+        val fvec = (new MLDense(farr)).asInstanceOf[AnyRef]
+        val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
+        for { j <- 0 until m } {
+          val t = farr(j)
+          farr(j) = ftd(j).sample
+          val pred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
+          farr(j) = t
+          dev(j) += fdev(refpred, pred)
+        }
+        (n + 1, dev)
+      }
+      Iterator((n, dev))
+    }.reduce { case ((n1, dev1), (n2, dev2)) =>
+      require(dev1.length == dev2.length, "mismatched deviation vector sizes")
+      for { j <- 0 until dev1.length } { dev1(j) += dev2(j) }
+      (n1 + n2, dev1)
+    }
+    val nD = n.toDouble
+    for { j <- 0 until imp.length } { imp(j) /= nD }
     val importances = if ($(deviationMeasure) != "rms-dev") imp else imp.map { x => math.sqrt(x) }
     val featNames: Seq[String] =
       if ($(featureNames).length > 0) {
@@ -272,101 +305,5 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
     val model = new TDigestFIModel(uid, tds, data.sparkSession)
     model.setParent(this)
     model
-  }
-}
-
-class TDigestFIUDAF(
-    featTD: Broadcast[Array[TDigest]],
-    predModel: Broadcast[AnyRef],
-    deviation: (Double, Double) => Double
-  ) extends UserDefinedAggregateFunction {
-
-  private val m = featTD.value.length
-
-  def deterministic: Boolean = false
-
-  def inputSchema: StructType =
-    StructType(StructField("features", TDigestUDTInfra.udtVectorML, false) :: Nil)
-
-  def dataType: DataType = ArrayType(DoubleType, false)
-
-  def bufferSchema: StructType =
-    StructType(
-      StructField("dev", ArrayType(DoubleType, false), false) ::
-      StructField("n", LongType, false) ::
-      Nil)
-
-  def initialize(buf: MutableAggregationBuffer): Unit = {
-    buf(0) =  WrappedArray.make[Double](Array.fill(m)(0.0))
-    buf(1) = 0L
-  }
-
-  def update(buf: MutableAggregationBuffer, input: Row): Unit = {
-    val ftd = featTD.value
-    val model = predModel.value
-    // The 'predict' method is part of the generic PredictionModel interface,
-    // however it is protected, so I have to force the issue using reflection.
-    // Method is not serializable, so I have to do it inside the update function each time.
-    val predictMethod = model.getClass.getDeclaredMethods.find(_.getName == "predict").get
-    predictMethod.setAccessible(true)
-    val dev = buf.getAs[WrappedArray[Double]](0)
-    val n = buf.getAs[Long](1)
-    val farr = input.getAs[MLVector](0).toArray
-    require(farr.length == m, "bad feature vector length ${farr.length}")
-    // Declaring a dense vector around 'farr' allows me to overwrite individual
-    // feature values below. This works because dense vec just wraps the underlying
-    // array value. If the implementation of dense vec changes, this could break,
-    // although it seems unlikely.
-    val fvec = (new MLDense(farr)).asInstanceOf[AnyRef]
-    val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
-    for { j <- 0 until m } {
-      val t = farr(j)
-      farr(j) = ftd(j).sample
-      val pred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
-      farr(j) = t
-      dev(j) += deviation(refpred, pred)
-    }
-    buf(0) = dev
-    buf(1) = n + 1
-  }
-
-  def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    val dev1 = buf1.getAs[WrappedArray[Double]](0)
-    val dev2 = buf2.getAs[WrappedArray[Double]](0)
-    val n1 = buf1.getAs[Long](1)
-    val n2 = buf2.getAs[Long](1)    
-    for { j <- 0 until m } {
-      dev1(j) += dev2(j)
-    }
-    buf1(0) = dev1
-    buf1(1) = n1 + n2
-  }
-
-  def evaluate(buf: Row): Any = {
-    val dev = buf.getAs[WrappedArray[Double]](0)
-    val n = buf.getAs[Long](1).toDouble
-    for { j <- 0 until m } {
-      dev(j) /= n
-    }
-    dev
-  }
-}
-
-object test {
-  import scala.util.Random
-  import org.apache.spark.ml.regression.LinearRegression
-  def apply(spark: SparkSession) = {
-    new AnyRef {
-      val raw = Vector.fill(1000) { Array.fill(3) { Random.nextGaussian() } }
-      val rawlab = raw.map { v => 3 * v(0) + 5 * v(1) - 7 * v(2) + 11 }
-      val data = spark.createDataFrame(raw.map { v => new MLDense(v) }
-        .zip(rawlab))
-        .toDF("features", "label")
-      val lr = new LinearRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
-      val lrModel = lr.fit(data)
-      val fi = new TDigestFI()
-      val fiModel = fi.fit(data)
-      val imp = fiModel.setTargetModel(lrModel).transform(data)
-    }
   }
 }
