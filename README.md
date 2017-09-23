@@ -337,3 +337,90 @@ scala> td.show()
 |TDigestArraySQL([...|
 +--------------------+
 ```
+
+### Compute feature importance with respect to a predictive model
+```scala
+scala> :paste
+// Entering paste mode (ctrl-D to finish)
+
+import org.apache.spark.ml.regression.LinearRegression
+
+val training = spark.read.format("libsvm")
+  .load("data/mllib/sample_linear_regression_data.txt")
+
+val lr = new LinearRegression()
+  .setMaxIter(10)
+  .setRegParam(0.3)
+  .setElasticNetParam(0.8)
+
+val lrModel = lr.fit(training)
+
+import org.isarnproject.pipelines.{TDigestFI,TDigestFIModel}
+
+val fi = new TDigestFI().setDelta(0.3).setMaxDiscrete(10)
+
+val fiMod = fi.fit(training)
+  .setTargetModel(lrModel)
+  .setDeviationMeasure("rms-dev")
+  .setFeatureNames(Array.tabulate(10){j=>s"x$j"})
+
+val imp = fiMod.transform(training)
+
+// Exiting paste mode, now interpreting.
+
+import org.apache.spark.ml.regression.LinearRegression
+training: org.apache.spark.sql.DataFrame = [label: double, features: vector]
+lr: org.apache.spark.ml.regression.LinearRegression = linReg_ad8ebef9cfe8
+lrModel: org.apache.spark.ml.regression.LinearRegressionModel = linReg_ad8ebef9cfe8
+import org.isarnproject.pipelines.{TDigestFI, TDigestFIModel}
+fi: org.isarnproject.pipelines.TDigestFI = TDigestFI_67b1cff93349
+fiMod: org.isarnproject.pipelines.TDigestFIModel = TDigestFI_67b1cff93349
+imp: org.apache.spark.sql.DataFrame = [name: string, importance: double]
+
+scala> imp.show
++----+-------------------+
+|name|         importance|
++----+-------------------+
+|  x0|                0.0|
+|  x1|0.27093413867331134|
+|  x2|0.27512986364699304|
+|  x3| 1.4284480425303374|
+|  x4|0.04472982597939822|
+|  x5| 0.5981079647203551|
+|  x6|                0.0|
+|  x7|0.11970670592684969|
+|  x8| 0.1668815037423663|
+|  x9|0.17970574939101025|
++----+-------------------+
+```
+
+### Compute feature importance with respect to a predictive model (python)
+```python
+>>> from pyspark.ml.regression import LinearRegression
+>>> training = spark.read.format("libsvm") \
+...     .load("data/mllib/sample_linear_regression_data.txt")
+>>> lr = LinearRegression(maxIter=10, regParam=0.3, elasticNetParam=0.8)
+>>> lrModel = lr.fit(training)
+>>> from isarnproject.pipelines.fi import *
+>>> fi = TDigestFI().setDelta(0.3).setMaxDiscrete(10)
+>>> fiMod = fi.fit(training) \
+...     .setTargetModel(lrModel) \
+...     .setDeviationMeasure("rms-dev") \
+...     .setFeatureNames(["x%d" % (j) for j in xrange(10)])
+>>> imp = fiMod.transform(training)
+>>> imp.show()
++----+-------------------+
+|name|         importance|
++----+-------------------+
+|  x0|                0.0|
+|  x1| 0.2513147892886899|
+|  x2|0.28992477834838837|
+|  x3| 1.4906022974248356|
+|  x4|0.04197189119745892|
+|  x5| 0.6213459845972947|
+|  x6|                0.0|
+|  x7|0.12463038543257152|
+|  x8|0.17144699470039335|
+|  x9|0.18428188512840307|
++----+-------------------+
+```

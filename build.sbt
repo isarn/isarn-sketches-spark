@@ -4,11 +4,11 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-val packageVersion = "0.2.0"
+val packageVersion = "0.3.0-SNAPSHOT"
 
 val sparkVersion = "2.2.0"
 
-val pythonVersion = "3.5"
+val pythonVersion = "2.7"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
@@ -124,6 +124,8 @@ compilePython <<= compilePython.dependsOn(deletePYC)
 
 mappings in (Compile, packageBin) ++= Seq(
   (baseDirectory.value / "python" / "isarnproject" / "__init__.pyc") -> "isarnproject/__init__.pyc",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "__init__.pyc") -> "isarnproject/pipelines/__init__.pyc",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "fi.pyc") -> "isarnproject/pipelines/fi.pyc",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.pyc") -> "isarnproject/sketches/__init__.pyc",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "__init__.pyc") -> "isarnproject/sketches/udaf/__init__.pyc",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.pyc") -> "isarnproject/sketches/udaf/tdigest.pyc",
