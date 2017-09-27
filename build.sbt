@@ -4,7 +4,7 @@ organization := "org.isarnproject"
 
 bintrayOrganization := Some("isarn")
 
-val packageVersion = "0.3.0-SNAPSHOT"
+val packageVersion = "0.4.0-SNAPSHOT"
 
 val sparkVersion = "2.2.0"
 
