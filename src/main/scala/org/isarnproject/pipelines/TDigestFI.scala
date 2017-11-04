@@ -225,7 +225,7 @@ class TDigestFIModel(
         (n + 1, dev)
       }
       Iterator((n, dev))
-    }.reduce { case ((n1, dev1), (n2, dev2)) =>
+    }.treeReduce { case ((n1, dev1), (n2, dev2)) =>
       require(dev1.length == dev2.length, "mismatched deviation vector sizes")
       for { j <- 0 until dev1.length } { dev1(j) += dev2(j) }
       (n1 + n2, dev1)
@@ -271,7 +271,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
 
   def fit(data: Dataset[_]): TDigestFIModel = {
     val tds = data.select(col($(featuresCol))).rdd
-      .aggregate(Array.empty[TDigest])({ case (ttd, Row(fv: MLVector)) =>
+      .treeAggregate(Array.empty[TDigest])({ case (ttd, Row(fv: MLVector)) =>
         val m = fv.size
         val td =
           if (ttd.length > 0) ttd else Array.fill(m)(TDigest.empty($(delta), $(maxDiscrete)))
