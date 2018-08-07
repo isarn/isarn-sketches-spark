@@ -9,9 +9,18 @@ https://isarn.github.io/isarn-sketches-spark/latest/api/#org.isarnproject.sketch
 ``` scala
 // Note that the version of spark and python is part of the release name.
 // This example is for spark 2.2 and python 2.7:
-libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.2.0-sp2.2-py2.7"
+libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.3.1-sp2.2-py2.7"
+```
 
-// currently supported: python 2.7, 3.5, spark 2.1, 2.2, scala 2.10, 2.11
+** Currently supported: python 2.7, 3.6  X  spark 2.2, 2.3  X  scala 2.11 **
+
+If you are interested in a python/spark/scala build that is not listed above, please contact me and/or file an issue!
+
+This package builds against some `% Provided` Apache Spark dependencies:
+```scala
+libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
+libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
+libraryDependencies += "org.apache.spark" %% "spark-mllib" % sparkVersion
 ```
 
 ## Examples
