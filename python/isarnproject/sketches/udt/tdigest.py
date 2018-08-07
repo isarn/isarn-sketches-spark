@@ -141,7 +141,7 @@ class TDigest(object):
         return len(self.clustX) == 0
 
     def __reduce__(self):
-        return (self.__class__, (self.delta, self.maxDiscrete. self.nclusters, self.clustX, self.clustM, ))
+        return (self.__class__, (self.delta, self.maxDiscrete, self.nclusters, self.clustX, self.clustM, ))
 
     # The "right cover" of a value x, w.r.t. the clusters in this TDigest
     def __covR__(self, x):
