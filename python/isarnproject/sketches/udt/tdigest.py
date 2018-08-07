@@ -182,7 +182,8 @@ class TDigest(object):
     # Get the inverse CDF, using the "corrected mass"
     def __cdfI__(self, j, m, c1, tm1, c2, tm2):
         m1, m2 = self.__m1m2__(j, c1, tm1, c2, tm2)
-        return c1 + (m - m1) * (c2 - c1) / (m2 - m1)
+        x = c1 + (m - m1) * (c2 - c1) / (m2 - m1)
+        return min(c2, max(c1, x))
 
     def cdf(self, xx):
         """
@@ -195,7 +196,8 @@ class TDigest(object):
             c1, tm1 = cov.l.get()
             c2, tm2 = cov.r.get()
             m1, m2 = self.__m1m2__(jcov.l.get(), c1, tm1, c2, tm2)
-            return (m1 + (x - c1) * (m2 - m1) / (c2 - c1)) / self.mass()
+            m = m1 + (x - c1) * (m2 - m1) / (c2 - c1)
+            return min(m2, max(m1, m)) / self.mass()
         if cov.r.isEmpty():
             return 1.0
         return 0.0
