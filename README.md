@@ -23,6 +23,13 @@ libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
 libraryDependencies += "org.apache.spark" %% "spark-mllib" % sparkVersion
 ```
 
+## How to use from the Spark CLI
+Several Spark CLI tools accept the `--packages` argument, as with this `spark-shell` example:
+```bash
+$ spark-shell --packages "org.isarnproject:isarn-sketches-spark_2.11:0.3.1-sp2.3-py3.6"
+```
+Note that you need to explicitly include the scala version as part of the package name
+
 ## Examples
 
 ### Sketch a numeric column
