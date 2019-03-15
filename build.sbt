@@ -1,6 +1,6 @@
 // xsbt clean unidoc previewSite
 // xsbt clean unidoc ghpagesPushSite
-// xsbt -Dsbt.global.base=/home/eje/.sbt/sonatype +publish
+// xsbt +publish
 // make sure sparkVersion and pythonVersion are set as you want them prior to +publish
 
 import scala.sys.process._
@@ -9,9 +9,9 @@ name := "isarn-sketches-spark"
 
 organization := "org.isarnproject"
 
-val packageVersion = "0.3.1"
+val packageVersion = "0.4.0-SNAPSHOT"
 
-val sparkVersion = "2.2.2"
+val sparkVersion = "2.4.0"
 
 val pythonVersion = "2.7"
 
@@ -28,6 +28,12 @@ scalaVersion := "2.11.12"
 crossScalaVersions := Seq("2.11.12") // scala 2.12 when spark supports it
 
 pomIncludeRepository := { _ => false }
+
+//isSnapshot := true
+
+//publishConfiguration := publishConfiguration.value.withOverwrite(true)
+
+//publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true)
 
 publishMavenStyle := true
 
@@ -60,7 +66,7 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "org.isarnproject" %% "isarn-sketches" % "0.1.2",
+  "org.isarnproject" % "isarn-sketches-java" % "0.2.1",
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
