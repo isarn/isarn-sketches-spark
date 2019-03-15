@@ -18,6 +18,8 @@ import scala.language.implicitConversions
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.util._
 
+import org.isarnproject.sketches.java.TDigest
+
 import org.apache.spark.isarnproject.sketches.udt._
 
 /** package-wide methods, implicits and definitions for sketching UDAFs */
@@ -40,7 +42,7 @@ package object udaf {
   def tdigestUDAF[N](implicit
     num: Numeric[N],
     dataType: TDigestUDAFDataType[N])
-  = TDigestUDAF(TDigest.deltaDefault, 0)
+  = TDigestUDAF(TDigest.COMPRESSION_DEFAULT, 0)
 
   /**
    * Obtain a UDAF for sketching a numeric array-data Dataset column, using a t-digest for
@@ -61,7 +63,7 @@ package object udaf {
   def tdigestArrayUDAF[N](implicit
     num: Numeric[N],
     dataType: TDigestUDAFDataType[N])
-  = TDigestArrayUDAF(TDigest.deltaDefault, 0)
+  = TDigestArrayUDAF(TDigest.COMPRESSION_DEFAULT, 0)
 
   /**
    * Obtain a UDAF for sketching an ML Vector Dataset column, using a t-digest for
@@ -78,7 +80,7 @@ package object udaf {
    * val tdArray = agg.getAs[TDigestArraySQL](0).tdigests
    * }}}
    */
-  def tdigestMLVecUDAF = TDigestMLVecUDAF(TDigest.deltaDefault, 0)
+  def tdigestMLVecUDAF = TDigestMLVecUDAF(TDigest.COMPRESSION_DEFAULT, 0)
 
   /**
    * Obtain a UDAF for sketching an MLLib Vector Dataset column, using a t-digest for
@@ -95,7 +97,7 @@ package object udaf {
    * val tdArray = agg.getAs[TDigestArraySQL](0).tdigests
    * }}}
    */
-  def tdigestMLLibVecUDAF = TDigestMLLibVecUDAF(TDigest.deltaDefault, 0)
+  def tdigestMLLibVecUDAF = TDigestMLLibVecUDAF(TDigest.COMPRESSION_DEFAULT, 0)
 
   /**
    * Obtain a UDAF for aggregating (reducing) a column (or grouping) of t-digests
@@ -125,7 +127,7 @@ package object udaf {
    * +--------------------+
    * }}}
    */
-  def tdigestReduceUDAF = TDigestReduceUDAF(TDigest.deltaDefault, 0)
+  def tdigestReduceUDAF = TDigestReduceUDAF(TDigest.COMPRESSION_DEFAULT, 0)
 
   /**
    * Obtain a UDAF for aggregating (reducing) a column of t-digest vectors
@@ -155,7 +157,7 @@ package object udaf {
    * +---------------------+
    * }}}
    */
-  def tdigestArrayReduceUDAF = TDigestArrayReduceUDAF(TDigest.deltaDefault, 0)
+  def tdigestArrayReduceUDAF = TDigestArrayReduceUDAF(TDigest.COMPRESSION_DEFAULT, 0)
 
   /** implicitly unpack a TDigestSQL to extract its TDigest payload */
   implicit def implicitTDigestSQLToTDigest(tdsql: TDigestSQL): TDigest = tdsql.tdigest

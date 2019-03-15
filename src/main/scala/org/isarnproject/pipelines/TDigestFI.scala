@@ -32,7 +32,7 @@ import org.apache.spark.sql.expressions.MutableAggregationBuffer
 import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
 import org.apache.spark.sql.Row
 
-import org.isarnproject.sketches.TDigest
+import org.isarnproject.sketches.java.TDigest
 import org.apache.spark.isarnproject.sketches.udt._
 import org.isarnproject.sketches.udaf._
 
@@ -62,7 +62,7 @@ package params {
      */
     final val delta: DoubleParam =
       new DoubleParam(this, "delta", "t-digest compression (> 0)", ParamValidators.gt(0.0))
-    setDefault(delta, org.isarnproject.sketches.TDigest.deltaDefault)
+    setDefault(delta, TDigest.COMPRESSION_DEFAULT)
     final def getDelta: Double = $(delta)
     final def setDelta(value: Double): this.type = set(delta, value)
 
@@ -280,13 +280,13 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
           case v: MLSparse =>
             var jBeg = 0
             v.foreachActive((j, x) => {
-              for { k <- jBeg until j } { td(k) += 0.0 }
-              td(j) += x
+              for { k <- jBeg until j } { td(k).update(0.0) }
+              td(j).update(x)
               jBeg = j + 1
             })
-            for { k <- jBeg until v.size } { td(k) += 0.0 }
+            for { k <- jBeg until v.size } { td(k).update(0.0) }
           case _ =>
-            for { j <- 0 until fv.size } { td(j) += fv(j) }
+            for { j <- 0 until fv.size } { td(j).update(fv(j)) }
         }
         td
       },
@@ -298,7 +298,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
         } else {
           require(td1.length == td2.length, "mismatched t-digest arrays")
           for { j <- 0 until td1.length } {
-            td1(j) ++= td2(j)
+            td1(j) = TDigest.merge(td1(j), td2(j))
           }
           td1
         })

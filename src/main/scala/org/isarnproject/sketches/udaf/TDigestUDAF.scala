@@ -19,7 +19,7 @@ import org.apache.spark.sql.expressions.MutableAggregationBuffer
 import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
 import org.apache.spark.sql.Row
 
-import org.isarnproject.sketches.TDigest
+import org.isarnproject.sketches.java.TDigest
 
 import org.apache.spark.isarnproject.sketches.udt._
 
@@ -57,12 +57,14 @@ case class TDigestUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
 
   def update(buf: MutableAggregationBuffer, input: Row): Unit = {
     if (!input.isNullAt(0)) {
-      buf(0) = TDigestSQL(buf.getAs[TDigestSQL](0).tdigest + num.toDouble(input.getAs[N](0)))
+      val td = buf.getAs[TDigestSQL](0).tdigest
+      td.update(num.toDouble(input.getAs[N](0)))
+      buf(0) = TDigestSQL(td)
     }
   }
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    buf1(0) = TDigestSQL(buf1.getAs[TDigestSQL](0).tdigest ++ buf2.getAs[TDigestSQL](0).tdigest)
+    buf1(0) = TDigestSQL(TDigest.merge(buf1.getAs[TDigestSQL](0).tdigest, buf2.getAs[TDigestSQL](0).tdigest))
   }
 
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
@@ -92,7 +94,7 @@ abstract class TDigestMultiUDAF extends UserDefinedAggregateFunction {
         Array.fill(tds2.length) { TDigest.empty(deltaV, maxDiscreteV) }
       }
       require(tds1.length == tds2.length)
-      for { j <- 0 until tds1.length } { tds1(j) ++= tds2(j) }
+      for { j <- 0 until tds1.length } { tds1(j) = TDigest.merge(tds1(j), tds2(j)) }
       buf1(0) = TDigestArraySQL(tds1)
     }
   }
@@ -129,13 +131,13 @@ case class TDigestMLVecUDAF(deltaV: Double, maxDiscreteV: Int) extends TDigestMu
         case v: org.apache.spark.ml.linalg.SparseVector =>
           var jBeg = 0
           v.foreachActive((j, x) => {
-            for { k <- jBeg until j } { tdigests(k) += 0.0 }
-            tdigests(j) += x
+            for { k <- jBeg until j } { tdigests(k).update(0.0) }
+            tdigests(j).update(x)
             jBeg = j + 1
           })
-          for { k <- jBeg until vec.size } { tdigests(k) += 0.0 }
+          for { k <- jBeg until vec.size } { tdigests(k).update(0.0) }
         case _ =>
-          for { j <- 0 until vec.size } { tdigests(j) += vec(j) }
+          for { j <- 0 until vec.size } { tdigests(j).update(vec(j)) }
       }
       buf(0) = TDigestArraySQL(tdigests)
     }
@@ -172,13 +174,13 @@ case class TDigestMLLibVecUDAF(deltaV: Double, maxDiscreteV: Int) extends TDiges
         case v: org.apache.spark.mllib.linalg.SparseVector =>
           var jBeg = 0
           v.foreachActive((j, x) => {
-            for { k <- jBeg until j } { tdigests(k) += 0.0 }
-            tdigests(j) += x
+            for { k <- jBeg until j } { tdigests(k).update(0.0) }
+            tdigests(j).update(x)
             jBeg = j + 1
           })
-          for { k <- jBeg until vec.size } { tdigests(k) += 0.0 }
+          for { k <- jBeg until vec.size } { tdigests(k).update(0.0) }
         case _ =>
-          for { j <- 0 until vec.size } { tdigests(j) += vec(j) }
+          for { j <- 0 until vec.size } { tdigests(j).update(vec(j)) }
       }
       buf(0) = TDigestArraySQL(tdigests)
     }
@@ -215,7 +217,7 @@ case class TDigestArrayUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
       require(tdigests.length == data.length)
       var j = 0
       for { x <- data } {
-        if (x != null) tdigests(j) += num.toDouble(x)
+        if (x != null) tdigests(j).update(num.toDouble(x))
         j += 1
       }
       buf(0) = TDigestArraySQL(tdigests)
@@ -254,7 +256,7 @@ case class TDigestReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
     if (!buf2.isNullAt(0)) {
-      buf1(0) = TDigestSQL(buf1.getAs[TDigestSQL](0).tdigest ++ buf2.getAs[TDigestSQL](0).tdigest)
+      buf1(0) = TDigestSQL(TDigest.merge(buf1.getAs[TDigestSQL](0).tdigest, buf2.getAs[TDigestSQL](0).tdigest))
     }
   }
 
@@ -299,7 +301,7 @@ case class TDigestArrayReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
           Array.fill(tds2.length) { TDigest.empty(deltaV, maxDiscreteV) }
         }
         require(tds1.length == tds2.length)
-        for { j <- 0 until tds1.length } { tds1(j) ++= tds2(j) }
+        for { j <- 0 until tds1.length } { tds1(j) = TDigest.merge(tds1(j), tds2(j)) }
         buf1(0) = TDigestArraySQL(tds1)
       }
     }

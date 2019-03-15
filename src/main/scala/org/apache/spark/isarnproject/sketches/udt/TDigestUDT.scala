@@ -17,8 +17,7 @@ import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArrayData}
-import org.isarnproject.sketches.TDigest
-import org.isarnproject.sketches.tdmap.TDigestMap
+import org.isarnproject.sketches.java.TDigest
 
 /** A type for receiving the results of deserializing [[TDigestUDT]].
  * The payload is the tdigest member field, holding a TDigest object.
@@ -55,7 +54,6 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
   def sqlType: DataType = StructType(
     StructField("delta", DoubleType, false) ::
     StructField("maxDiscrete", IntegerType, false) ::
-    StructField("nclusters", IntegerType, false) ::
     StructField("clustX", ArrayType(DoubleType, false), false) ::
     StructField("clustM", ArrayType(DoubleType, false), false) ::
     Nil)
@@ -65,29 +63,23 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
   def deserialize(datum: Any): TDigestSQL = TDigestSQL(deserializeTD(datum))
 
   private[sketches] def serializeTD(td: TDigest): InternalRow = {
-    val TDigest(delta, maxDiscrete, nclusters, clusters) = td
-    val row = new GenericInternalRow(5)
-    row.setDouble(0, delta)
-    row.setInt(1, maxDiscrete)
-    row.setInt(2, nclusters)
-    val clustX = clusters.keys.toArray
-    val clustM = clusters.values.toArray
-    row.update(3, UnsafeArrayData.fromPrimitiveArray(clustX))
-    row.update(4, UnsafeArrayData.fromPrimitiveArray(clustM))
+    val row = new GenericInternalRow(4)
+    row.setDouble(0, td.getCompression())
+    row.setInt(1, td.getMaxDiscrete())
+    val clustX = td.getCentUnsafe()
+    val clustM = td.getMassUnsafe()
+    row.update(2, UnsafeArrayData.fromPrimitiveArray(clustX))
+    row.update(3, UnsafeArrayData.fromPrimitiveArray(clustM))
     row
   }
 
   private[sketches] def deserializeTD(datum: Any): TDigest = datum match {
-    case row: InternalRow =>
-      require(row.numFields == 5, s"expected row length 5, got ${row.numFields}")
+    case row: InternalRow if (row.numFields == 4) =>
       val delta = row.getDouble(0)
       val maxDiscrete = row.getInt(1)
-      val nclusters = row.getInt(2)
-      val clustX = row.getArray(3).toDoubleArray()
-      val clustM = row.getArray(4).toDoubleArray()
-      val clusters = clustX.zip(clustM)
-        .foldLeft(TDigestMap.empty) { case (td, e) => td + e }
-      TDigest(delta, maxDiscrete, nclusters, clusters)
+      val clustX = row.getArray(2).toDoubleArray()
+      val clustM = row.getArray(3).toDoubleArray()
+      new TDigest(delta, maxDiscrete, clustX, clustM)
     case u => throw new Exception(s"failed to deserialize: $u")
   }
 }
@@ -140,11 +132,11 @@ class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
   def serialize(tdasql: TDigestArraySQL): Any = {
     val row = new GenericInternalRow(5)
     val tda: Array[TDigest] = tdasql.tdigests
-    val delta = if (tda.isEmpty) 0.0 else tda.head.delta
-    val maxDiscrete = if (tda.isEmpty) 0 else tda.head.maxDiscrete
-    val clustS = tda.map(_.nclusters)
-    val clustX = tda.flatMap(_.clusters.keys)
-    val clustM = tda.flatMap(_.clusters.values)
+    val delta = if (tda.isEmpty) 0.0 else tda.head.getCompression()
+    val maxDiscrete = if (tda.isEmpty) 0 else tda.head.getMaxDiscrete()
+    val clustS = tda.map(_.size())
+    val clustX = tda.flatMap(_.getCentUnsafe())
+    val clustM = tda.flatMap(_.getMassUnsafe())
     row.setDouble(0, delta)
     row.setInt(1, maxDiscrete)
     row.update(2, UnsafeArrayData.fromPrimitiveArray(clustS))
@@ -165,8 +157,7 @@ class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
       val tda = clustS.map { nclusters =>
         val x = clustX.slice(beg, beg + nclusters)
         val m = clustM.slice(beg, beg + nclusters)
-        val clusters = x.zip(m).foldLeft(TDigestMap.empty) { case (td, e) => td + e }
-        val td = TDigest(delta, maxDiscrete, nclusters, clusters)
+        val td = new TDigest(delta, maxDiscrete, x, m)
         beg += nclusters
         td
       }
