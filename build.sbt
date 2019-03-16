@@ -81,7 +81,7 @@ initialCommands in console := """
   |import org.apache.spark.SparkContext._
   |import org.apache.spark.rdd.RDD
   |import org.apache.spark.ml.linalg.Vectors
-  |import org.isarnproject.sketches.TDigest
+  |import org.isarnproject.sketches.java.TDigest
   |import org.isarnproject.sketches.udaf._
   |import org.apache.spark.isarnproject.sketches.udt._
   |val initialConf = new SparkConf().setAppName("repl").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "16mb")
