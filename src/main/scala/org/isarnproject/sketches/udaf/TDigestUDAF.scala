@@ -11,7 +11,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package org.isarnproject.sketches.udaf
+package org.apache.spark.sql.types {
+
+import scala.math.Ordering
+import scala.reflect.runtime.universe.typeTag
+
+import org.isarnproject.sketches.java.TDigest
+/*
+class TDigestType private() extends AtomicType {
+  private[sql] type InternalType = 
+}
+*/
+}
+
+package org.isarnproject.sketches.udaf {
 
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.util._
@@ -52,19 +65,22 @@ case class TDigestUDAF[N](deltaV: Double, maxDiscreteV: Int)(implicit
   def dataType: DataType = TDigestUDT
 
   def initialize(buf: MutableAggregationBuffer): Unit = {
-    buf(0) = TDigestSQL(TDigest.empty(deltaV, maxDiscreteV))
+    buf(0) = TDigestSQL(TDigest.empty(deltaV, maxDiscreteV), 0, 0)
   }
 
   def update(buf: MutableAggregationBuffer, input: Row): Unit = {
     if (!input.isNullAt(0)) {
-      val td = buf.getAs[TDigestSQL](0).tdigest
+      val tdsql = buf.getAs[TDigestSQL](0)
+      val td = tdsql.tdigest
       td.update(num.toDouble(input.getAs[N](0)))
-      buf(0) = TDigestSQL(td)
+      buf(0) = TDigestSQL(td, tdsql.nSer, tdsql.nDeSer)
     }
   }
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
-    buf1(0) = TDigestSQL(TDigest.merge(buf1.getAs[TDigestSQL](0).tdigest, buf2.getAs[TDigestSQL](0).tdigest))
+    val tdsql1 = buf1.getAs[TDigestSQL](0)
+    val tdsql2 = buf2.getAs[TDigestSQL](0)
+    buf1(0) = TDigestSQL(TDigest.merge(tdsql1.tdigest, buf2.getAs[TDigestSQL](0).tdigest), tdsql1.nSer + tdsql2.nSer, tdsql1.nDeSer + tdsql2.nDeSer)
   }
 
   def evaluate(buf: Row): Any = buf.getAs[TDigestSQL](0)
@@ -249,14 +265,14 @@ case class TDigestReduceUDAF(deltaV: Double, maxDiscreteV: Int) extends
   def dataType: DataType = TDigestUDT
 
   def initialize(buf: MutableAggregationBuffer): Unit = {
-    buf(0) = TDigestSQL(TDigest.empty(deltaV, maxDiscreteV))
+    buf(0) = TDigestSQL(TDigest.empty(deltaV, maxDiscreteV), 0, 0)
   }
 
   def update(buf: MutableAggregationBuffer, input: Row): Unit = this.merge(buf, input)
 
   def merge(buf1: MutableAggregationBuffer, buf2: Row): Unit = {
     if (!buf2.isNullAt(0)) {
-      buf1(0) = TDigestSQL(TDigest.merge(buf1.getAs[TDigestSQL](0).tdigest, buf2.getAs[TDigestSQL](0).tdigest))
+      buf1(0) = TDigestSQL(TDigest.merge(buf1.getAs[TDigestSQL](0).tdigest, buf2.getAs[TDigestSQL](0).tdigest), 0, 0)
     }
   }
 
@@ -346,4 +362,6 @@ object pythonBindings {
 
   def tdigestArrayReduceUDAF(delta: Double, maxDiscrete: Int) =
     TDigestArrayReduceUDAF(delta, maxDiscrete)
+}
+
 }

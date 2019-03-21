@@ -19,6 +19,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArrayData}
 import org.isarnproject.sketches.java.TDigest
 
+import java.util.Arrays
+
 /** A type for receiving the results of deserializing [[TDigestUDT]].
  * The payload is the tdigest member field, holding a TDigest object.
  * This is necessary because (a) I define the TDigest type is defined in the isarn-sketches
@@ -28,7 +30,7 @@ import org.isarnproject.sketches.java.TDigest
  * @param tdigest The TDigest payload, which does the actual sketching.
  */
 @SQLUserDefinedType(udt = classOf[TDigestUDT])
-case class TDigestSQL(tdigest: TDigest)
+case class TDigestSQL(tdigest: TDigest, nSer: Int, nDeSer: Int)
 
 /** A UserDefinedType for serializing and deserializing [[TDigestSQL]] structures during UDAF
  * aggregations.
@@ -56,30 +58,39 @@ class TDigestUDT extends UserDefinedType[TDigestSQL] {
     StructField("maxDiscrete", IntegerType, false) ::
     StructField("clustX", ArrayType(DoubleType, false), false) ::
     StructField("clustM", ArrayType(DoubleType, false), false) ::
+    StructField("nSer", IntegerType, false) ::
+    StructField("nDeSer", IntegerType, false) ::
     Nil)
 
-  def serialize(tdsql: TDigestSQL): Any = serializeTD(tdsql.tdigest)
+  def serialize(tdsql: TDigestSQL): Any = serializeTD(tdsql)
 
-  def deserialize(datum: Any): TDigestSQL = TDigestSQL(deserializeTD(datum))
+  def deserialize(datum: Any): TDigestSQL = deserializeTD(datum)
 
-  private[sketches] def serializeTD(td: TDigest): InternalRow = {
-    val row = new GenericInternalRow(4)
+  private[sketches] def serializeTD(tdsql: TDigestSQL): InternalRow = {
+    val td = tdsql.tdigest
+    //println(s"mass= ${td.mass()}")
+    //if (td.mass() >= 5) throw new Exception("boo!")
+    val row = new GenericInternalRow(6)
     row.setDouble(0, td.getCompression())
     row.setInt(1, td.getMaxDiscrete())
-    val clustX = td.getCentUnsafe()
-    val clustM = td.getMassUnsafe()
+    val clustX = Arrays.copyOf(td.getCentUnsafe(), td.size())
+    val clustM = Arrays.copyOf(td.getMassUnsafe(), td.size())
     row.update(2, UnsafeArrayData.fromPrimitiveArray(clustX))
     row.update(3, UnsafeArrayData.fromPrimitiveArray(clustM))
+    row.setInt(4, tdsql.nSer + 1)
+    row.setInt(5, tdsql.nDeSer)
     row
   }
 
-  private[sketches] def deserializeTD(datum: Any): TDigest = datum match {
-    case row: InternalRow if (row.numFields == 4) =>
+  private[sketches] def deserializeTD(datum: Any): TDigestSQL = datum match {
+    case row: InternalRow if (row.numFields == 6) =>
       val delta = row.getDouble(0)
       val maxDiscrete = row.getInt(1)
       val clustX = row.getArray(2).toDoubleArray()
       val clustM = row.getArray(3).toDoubleArray()
-      new TDigest(delta, maxDiscrete, clustX, clustM)
+      val sz = clustX.length
+      val td = new TDigest(delta, maxDiscrete, Arrays.copyOf(clustX, sz), Arrays.copyOf(clustM, sz))
+      TDigestSQL(td, row.getInt(4), row.getInt(5) + 1)
     case u => throw new Exception(s"failed to deserialize: $u")
   }
 }
