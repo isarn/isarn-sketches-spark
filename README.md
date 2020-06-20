@@ -7,14 +7,23 @@ https://isarn.github.io/isarn-sketches-spark/latest/api/#org.isarnproject.sketch
 ## How to use in your project
 
 ``` scala
-// Note that the version of spark and python is part of the release name.
-// This example is for spark 2.2 and python 2.7:
-libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.3.1-sp2.2-py2.7"
+// Note that the version of spark is part of the release name.
+// This example is for spark 2.4:
+libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.4.0-sp2.4"
 ```
 
-** Currently supported: python 2.7, 3.6  X  spark 2.2, 2.3  X  scala 2.11 **
+Currently supported:
+
+- spark 2.2, scala 2.11
+- spark 2.3, scala 2.11
+- spark 2.4, scala 2.11 and 2.12
+- spark 3.0, scala 2.12
 
 If you are interested in a python/spark/scala build that is not listed above, please contact me and/or file an issue!
+
+Python code is also packaged with all of the artifacts above.
+Spark will automatically extract and compile Python components for use with PySpark.
+Python 2 and 3 are supported. Note that Python 2 is EOL as of January 2020.
 
 This package builds against some `% Provided` Apache Spark dependencies:
 ```scala
@@ -26,9 +35,9 @@ libraryDependencies += "org.apache.spark" %% "spark-mllib" % sparkVersion
 ## How to use from the Spark CLI
 Several Spark CLI tools accept the `--packages` argument, as with this `spark-shell` example:
 ```bash
-$ spark-shell --packages "org.isarnproject:isarn-sketches-spark_2.11:0.3.1-sp2.3-py3.6"
+$ spark-shell --packages "org.isarnproject:isarn-sketches-spark_2.12:0.4.0-sp2.4"
 ```
-Note that you need to explicitly include the scala version as part of the package name
+Note that you need to explicitly include the scala version as part of the package name.
 
 ## Examples
 
@@ -244,7 +253,7 @@ scala> td.show()
 >>> from isarnproject.sketches.udaf.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[gauss(0,1)] for x in xrange(1000)]).toDF(StructType([StructField("x", DoubleType())]))
+>>> data = sc.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
 >>> agg = data.agg(tdigestDoubleUDAF("x"))
 >>> td = agg.first()[0]
 >>> td.cdfInverse(0.5)
@@ -257,10 +266,10 @@ scala> td.show()
 >>> from isarnproject.sketches.udaf.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in xrange(1000)]).toDF(StructType([StructField("x", ArrayType(DoubleType()))]))
+>>> data = sc.parallelize([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(1000)]).toDF(StructType([StructField("x", ArrayType(DoubleType()))]))
 >>> agg = data.agg(tdigestDoubleArrayUDAF("x"))
 >>> tds = agg.first()[0]
->>> [t.cdfInverse(0.5) for t in td] 
+>>> [t.cdfInverse(0.5) for t in tds] 
 [0.046116924117141189, -0.011071666930287466, -0.019006033872431105]
 >>> 
 ```
@@ -271,7 +280,7 @@ scala> td.show()
 >>> from random import gauss
 >>> from pyspark.ml.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in xrange(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
+>>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
 >>> agg = data.agg(tdigestMLVecUDAF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds]
@@ -285,7 +294,7 @@ scala> td.show()
 >>> from random import gauss
 >>> from pyspark.mllib.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in xrange(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
+>>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
 >>> agg = data.agg(tdigestMLLibVecUDAF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds]
@@ -298,8 +307,8 @@ scala> td.show()
 >>> from isarnproject.sketches.udaf.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
->>> x = sc.parallelize([[gauss(0,1)] for x in xrange(1000)]).toDF(StructType([StructField("x", DoubleType())]))
->>> g = sc.parallelize([[1+x] for x in xrange(5)]).toDF(StructType([StructField("g", IntegerType())]))
+>>> x = sc.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
+>>> g = sc.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
 >>> data = g.crossJoin(x)
 >>> tds = data.groupBy("g").agg(tdigestDoubleUDAF("x").alias("tdigests"))
 >>> tds.show()
@@ -330,8 +339,8 @@ scala> td.show()
 >>> from random import gauss
 >>> from pyspark.ml.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
->>> x = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in xrange(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> g = sc.parallelize([[1+x] for x in xrange(5)]).toDF(StructType([StructField("g", IntegerType())]))
+>>> x = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
+>>> g = sc.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
 >>> data = g.crossJoin(x)
 >>> tds = data.groupBy("g").agg(tdigestMLVecUDAF("x").alias("tdigests"))
 >>> tds.show()
@@ -422,7 +431,7 @@ scala> imp.show
 >>> fiMod = fi.fit(training) \
 ...     .setTargetModel(lrModel) \
 ...     .setDeviationMeasure("rms-dev") \
-...     .setFeatureNames(["x%d" % (j) for j in xrange(10)])
+...     .setFeatureNames(["x%d" % (j) for j in range(10)])
 >>> imp = fiMod.transform(training)
 >>> imp.show()
 +----+-------------------+

@@ -1,7 +1,8 @@
 // xsbt clean unidoc previewSite
 // xsbt clean unidoc ghpagesPushSite
-// xsbt -Dsbt.global.base=/home/eje/.sbt/sonatype +publish
-// make sure sparkVersion and pythonVersion are set as you want them prior to +publish
+// xsbt +publish
+// https://oss.sonatype.org
+// make sure sparkVersion is set as you want prior to +publish
 
 import scala.sys.process._
 
@@ -9,23 +10,17 @@ name := "isarn-sketches-spark"
 
 organization := "org.isarnproject"
 
-val packageVersion = "0.3.1"
+val packageVersion = "0.4.0"
 
-val sparkVersion = "2.2.2"
-
-val pythonVersion = "2.7"
+val sparkVersion = "3.0.0"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
-val pythonSuffix = s"""py${pythonVersion.split('.').take(2).mkString(".")}"""
+version := s"${packageVersion}-${sparkSuffix}"
 
-val pythonCMD = s"""python${pythonVersion.split('.').head}"""
+scalaVersion := "2.12.11"
 
-version := s"${packageVersion}-${sparkSuffix}-${pythonSuffix}"
-
-scalaVersion := "2.11.12"
-
-crossScalaVersions := Seq("2.11.12") // scala 2.12 when spark supports it
+crossScalaVersions := Seq("2.12.11") // scala 2.12.11 when spark supports it
 
 pomIncludeRepository := { _ => false }
 
@@ -92,46 +87,15 @@ licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0"))
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-lazy val deletePYC = taskKey[Unit]("Delete .pyc files")
-
-deletePYC := {
-  val s: TaskStreams = streams.value
-  s.log.info("delete .pyc files...")
-  val cmd = "bash" :: "-c" :: "rm -f $(find python -name *.pyc)" :: Nil
-  val stat = (cmd !)
-  if (stat == 0) {
-    s.log.info("delete .pyc succeeded")
-  } else {
-    throw new IllegalStateException("delete .pyc failed")
-  }
-}
-
-lazy val compilePython = taskKey[Unit]("Compile python files")
-
-compilePython := {
-  val s: TaskStreams = streams.value
-  s.log.info("compiling python...")
-  val stat = (Seq(pythonCMD, "-m", "compileall", "python/") !)
-  if (stat == 0) {
-    s.log.info("python compile succeeded")
-  } else {
-    throw new IllegalStateException("python compile failed")
-  }
-}
-
-compilePython := (compilePython.dependsOn(deletePYC)).value
-
-(packageBin in Compile) := ((packageBin in Compile).dependsOn(compilePython)).value
-
 mappings in (Compile, packageBin) ++= Seq(
-  (baseDirectory.value / "python" / "isarnproject" / "__init__.pyc") -> "isarnproject/__init__.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "__init__.pyc") -> "isarnproject/pipelines/__init__.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "fi.pyc") -> "isarnproject/pipelines/fi.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.pyc") -> "isarnproject/sketches/__init__.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "__init__.pyc") -> "isarnproject/sketches/udaf/__init__.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.pyc") -> "isarnproject/sketches/udaf/tdigest.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "__init__.pyc") -> "isarnproject/sketches/udt/__init__.pyc",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "tdigest.pyc") -> "isarnproject/sketches/udt/tdigest.pyc"
+  (baseDirectory.value / "python" / "isarnproject" / "__init__.py") -> "isarnproject/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "__init__.py") -> "isarnproject/pipelines/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "fi.py") -> "isarnproject/pipelines/fi.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.py") -> "isarnproject/sketches/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "__init__.py") -> "isarnproject/sketches/udaf/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.py") -> "isarnproject/sketches/udaf/tdigest.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "__init__.py") -> "isarnproject/sketches/udt/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "tdigest.py") -> "isarnproject/sketches/udt/tdigest.py"
 )
 
 test in assembly := {}

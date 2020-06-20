@@ -7,13 +7,13 @@ resolvers += "sonatype-releases" at "https://oss.sonatype.org/content/repositori
 
 resolvers += "jgit-repo" at "http://download.eclipse.org/jgit/maven"
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.2")
+addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.3")
 
-addSbtPlugin("com.eed3si9n" % "sbt-unidoc" % "0.4.1")
+addSbtPlugin("com.eed3si9n" % "sbt-unidoc" % "0.4.3")
 
-addSbtPlugin("io.crashbox" % "sbt-gpg" % "0.1.6")
+addSbtPlugin("io.crashbox" % "sbt-gpg" % "0.2.1")
 
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.3")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.2")
 
 // scoverage and coveralls deps are at old versions to avoid a bug in the current versions
 // update these when this fix is released:  https://github.com/scoverage/sbt-coveralls/issues/73
