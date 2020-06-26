@@ -10,7 +10,7 @@ name := "isarn-sketches-spark"
 
 organization := "org.isarnproject"
 
-val packageVersion = "0.4.1-SNAPSHOT"
+val packageVersion = "0.5.0-SNAPSHOT"
 
 val sparkVersion = "3.0.0"
 
@@ -55,13 +55,10 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "org.isarnproject" %% "isarn-sketches" % "0.1.2",
+  "org.isarnproject" %% "isarn-sketches" % "0.2.2",
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
-  "org.isarnproject" %% "isarn-scalatest" % "0.0.3" % Test,
-  "org.scalatest" %% "scalatest" % "3.0.5" % Test,
-  "org.apache.commons" % "commons-math3" % "3.6.1" % Test)
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided)
 
 initialCommands in console := """
   |import org.apache.spark.SparkConf
