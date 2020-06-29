@@ -67,10 +67,10 @@ initialCommands in console := """
   |import org.apache.spark.SparkContext._
   |import org.apache.spark.rdd.RDD
   |import org.apache.spark.ml.linalg.Vectors
-  |import org.isarnproject.sketches.TDigest
-  |import org.isarnproject.sketches.udaf._
-  |import org.apache.spark.isarnproject.sketches.udt._
-  |val initialConf = new SparkConf().setAppName("repl").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "16mb")
+  |import org.apache.spark.sql.functions._
+  |import org.isarnproject.sketches.java.TDigest
+  |import org.isarnproject.sketches.spark._
+  |val initialConf = new SparkConf().setAppName("repl")
   |val spark = SparkSession.builder.config(initialConf).master("local[2]").getOrCreate()
   |import spark._, spark.implicits._
   |val sc = spark.sparkContext
