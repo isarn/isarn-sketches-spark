@@ -18,9 +18,7 @@ import org.apache.spark.sql.expressions.Aggregator
 import org.apache.spark.sql.{ Encoder, Encoders }
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
-import org.isarnproject.sketches.java.{ TDigest => BaseTD }
-
-import org.apache.spark.isarnproject.sketches.udtdev.TDigestUDT
+import infra.TDigest
 
 class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
   implicit
@@ -30,7 +28,7 @@ class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
 {
   def zero: TDigest = new TDigest(compression, maxDiscrete)
   def reduce(td: TDigest, v: V): TDigest = {
-    td.update(vnum.toDouble(v))
+    if (v != null) td.update(vnum.toDouble(v))
     td
   }
   def merge(td1: TDigest, td2: TDigest): TDigest = {
@@ -42,26 +40,54 @@ class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
   def outputEncoder: Encoder[TDigest] = ExpressionEncoder[TDigest]()
 }
 
-// the only reason for this shim class is to link it to TDigestUDT
-@SQLUserDefinedType(udt = classOf[TDigestUDT])
-class TDigest(
-    compression: Double,
-    maxDiscrete: Int,
-    cent: Array[Double],
-    mass: Array[Double])
-  extends
-    BaseTD(compression, maxDiscrete, cent, mass) {
+object TDigestAggregator {
+  import scala.reflect.runtime.universe.TypeTag
+  import org.apache.spark.sql.functions.udaf
+  import org.apache.spark.sql.expressions.UserDefinedFunction
 
-  def this(
+  def apply[V](
       compression: Double = TDigest.compressionDefault,
-      maxDiscrete: Int = TDigest.maxDiscreteDefault) {
-    this(compression, maxDiscrete, null, null)
-  }
+      maxDiscrete: Int = TDigest.maxDiscreteDefault)(
+    implicit
+      vnum: Numeric[V]): TDigestAggregator[V] =
+    new TDigestAggregator[V](compression, maxDiscrete)
+
+  def udf[V](
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault)(
+    implicit
+      vnum: Numeric[V],
+      ttV: TypeTag[V]): UserDefinedFunction =
+    udaf(apply[V](compression, maxDiscrete))
 }
 
-object TDigest {
-  val compressionDefault: Double = 0.5
-  val maxDiscreteDefault: Int = 0
+object infra {
+  import org.apache.spark.isarnproject.sketches.udtdev.TDigestUDT
+  import org.isarnproject.sketches.java.{ TDigest => BaseTD }
+
+  // the only reason for this shim class is to link it to TDigestUDT
+  // the user does not need to see this shim, and can do:
+  // resultRow.getAs[org.isarnproject.sketches.java.TDigest](0)
+  @SQLUserDefinedType(udt = classOf[TDigestUDT])
+  class TDigest(
+      compression: Double,
+      maxDiscrete: Int,
+      cent: Array[Double],
+      mass: Array[Double])
+    extends
+      BaseTD(compression, maxDiscrete, cent, mass) {
+
+    def this(
+        compression: Double = TDigest.compressionDefault,
+        maxDiscrete: Int = TDigest.maxDiscreteDefault) {
+      this(compression, maxDiscrete, null, null)
+    }
+  }
+
+  object TDigest {
+    val compressionDefault: Double = 0.5
+    val maxDiscreteDefault: Int = 0
+  }
 }
 
 } // package
@@ -72,7 +98,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArrayData}
 
-import org.isarnproject.sketches.spark.TDigest
+import org.isarnproject.sketches.spark.infra.TDigest
 
 class TDigestUDT extends UserDefinedType[TDigest] {
   def userClass: Class[TDigest] = classOf[TDigest]
