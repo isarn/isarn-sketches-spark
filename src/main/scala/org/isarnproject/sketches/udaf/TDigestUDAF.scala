@@ -23,6 +23,9 @@ import org.isarnproject.sketches.TDigest
 
 import org.apache.spark.isarnproject.sketches.udt._
 
+/*
+
+
 /**
  * A UDAF for sketching numeric data with a TDigest.
  * Expected to be created using [[tdigestUDAF]].
@@ -345,3 +348,5 @@ object pythonBindings {
   def tdigestArrayReduceUDAF(delta: Double, maxDiscrete: Int) =
     TDigestArrayReduceUDAF(delta, maxDiscrete)
 }
+
+*/

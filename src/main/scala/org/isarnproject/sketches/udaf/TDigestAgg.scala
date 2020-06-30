@@ -22,7 +22,7 @@ import infra.TDigest
 
 class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
   implicit
-    vnum: Numeric[V])
+    vnum: infra.ScalarNumeric[V])
   extends
     Aggregator[V, TDigest, TDigest]
 {
@@ -49,23 +49,32 @@ object TDigestAggregator {
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
     implicit
-      vnum: Numeric[V]): TDigestAggregator[V] =
+      vnum: infra.ScalarNumeric[V]): TDigestAggregator[V] =
     new TDigestAggregator[V](compression, maxDiscrete)
 
   def udf[V](
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
     implicit
-      vnum: Numeric[V],
+      vnum: infra.ScalarNumeric[V],
       ttV: TypeTag[V]): UserDefinedFunction =
     udaf(apply[V](compression, maxDiscrete))
 }
 
 /**
- * Functions for languages that don't support type parameters or typeclasses
- * (java, python, etc)
+ * Convenience functions that do not require type parameters or typeclasses to invoke.
+ * Use cases include java or pyspark bindings
  */
-object java {
+object functions {
+  def tdigestIntUDF(compression: Double, maxDiscrete: Int) =
+    TDigestAggregator.udf[Int](compression, maxDiscrete)
+
+  def tdigestLongUDF(compression: Double, maxDiscrete: Int) =
+    TDigestAggregator.udf[Long](compression, maxDiscrete)
+
+  def tdigestFloatUDF(compression: Double, maxDiscrete: Int) =
+    TDigestAggregator.udf[Float](compression, maxDiscrete)
+
   def tdigestDoubleUDF(compression: Double, maxDiscrete: Int) =
     TDigestAggregator.udf[Double](compression, maxDiscrete)
 }
@@ -96,6 +105,45 @@ object infra {
   object TDigest {
     val compressionDefault: Double = 0.5
     val maxDiscreteDefault: Int = 0
+  }
+
+  // scala's standard Numeric doesn't support java.lang.xxx
+  trait ScalarNumeric[N] extends Serializable {
+    def toDouble(v: N): Double
+  }
+  object ScalarNumeric {
+    implicit val javaIntIsSN: ScalarNumeric[java.lang.Integer] =
+      new ScalarNumeric[java.lang.Integer] {
+        @inline def toDouble(v: java.lang.Integer): Double = v.toDouble
+      }
+    implicit val javaLongIsSN: ScalarNumeric[java.lang.Long] =
+      new ScalarNumeric[java.lang.Long] {
+        @inline def toDouble(v: java.lang.Long): Double = v.toDouble
+      }
+    implicit val javaFloatIsSN: ScalarNumeric[java.lang.Float] =
+      new ScalarNumeric[java.lang.Float] {
+        @inline def toDouble(v: java.lang.Float): Double = v.toDouble
+      }
+    implicit val javaDoubleIsSN: ScalarNumeric[java.lang.Double] =
+      new ScalarNumeric[java.lang.Double] {
+        @inline def toDouble(v: java.lang.Double): Double = v
+      }
+    implicit val scalaIntIsSN: ScalarNumeric[Int] =
+      new ScalarNumeric[Int] {
+        @inline def toDouble(v: Int): Double = v.toDouble
+      }
+    implicit val scalaLongIsSN: ScalarNumeric[Long] =
+      new ScalarNumeric[Long] {
+        @inline def toDouble(v: Long): Double = v.toDouble
+      }
+    implicit val scalaFloatIsSN: ScalarNumeric[Float] =
+      new ScalarNumeric[Float] {
+        @inline def toDouble(v: Float): Double = v.toDouble
+      }
+    implicit val scalaDoubleIsSN: ScalarNumeric[Double] =
+      new ScalarNumeric[Double] {
+        @inline def toDouble(v: Double): Double = v
+      }
   }
 }
 

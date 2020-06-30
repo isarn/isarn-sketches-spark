@@ -22,6 +22,8 @@ import org.apache.spark.isarnproject.sketches.udt._
 
 /** package-wide methods, implicits and definitions for sketching UDAFs */
 package object udaf {
+/*
+
   /**
    * Obtain a UDAF for sketching a single numeric Dataset column using a t-digest
    * @tparam N The numeric type of the column; Double, Int, etc
@@ -157,20 +159,5 @@ package object udaf {
    */
   def tdigestArrayReduceUDAF = TDigestArrayReduceUDAF(TDigest.deltaDefault, 0)
 
-  /** implicitly unpack a TDigestSQL to extract its TDigest payload */
-  implicit def implicitTDigestSQLToTDigest(tdsql: TDigestSQL): TDigest = tdsql.tdigest
-
-  /** implicitly unpack a TDigestArraySQL to extract its Array[TDigest] payload */
-  implicit def implicitTDigestArraySQLToTDigestArray(tdasql: TDigestArraySQL): Array[TDigest] =
-    tdasql.tdigests
-
-  /** For declaring implicit values that map numeric types to corresponding DataType values */
-  case class TDigestUDAFDataType[N](tpe: DataType)
-
-  implicit val tDigestUDAFDataTypeByte = TDigestUDAFDataType[Byte](ByteType)
-  implicit val tDigestUDAFDataTypeShort = TDigestUDAFDataType[Short](ShortType)
-  implicit val tDigestUDAFDataTypeInt = TDigestUDAFDataType[Int](IntegerType)
-  implicit val tDigestUDAFDataTypeLong = TDigestUDAFDataType[Long](LongType)
-  implicit val tDigestUDAFDataTypeFloat = TDigestUDAFDataType[Float](FloatType)
-  implicit val tDigestUDAFDataTypeDouble = TDigestUDAFDataType[Double](DoubleType)
+*/
 }

@@ -20,6 +20,8 @@ import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArra
 import org.isarnproject.sketches.TDigest
 import org.isarnproject.sketches.tdmap.TDigestMap
 
+/*
+
 /** A type for receiving the results of deserializing [[TDigestUDT]].
  * The payload is the tdigest member field, holding a TDigest object.
  * This is necessary because (a) I define the TDigest type is defined in the isarn-sketches
@@ -177,6 +179,10 @@ class TDigestArrayUDT extends UserDefinedType[TDigestArraySQL] {
 
 /** A [[TDigestArrayUDT]] instance for use in declaring UDAF objects */
 case object TDigestArrayUDT extends TDigestArrayUDT
+
+
+*/
+
 
 /** Shims for exposing Spark's VectorUDT objects outside of org.apache.spark scope */
 object TDigestUDTInfra {
