@@ -2,10 +2,17 @@ from pyspark.sql.column import Column, _to_java_column, _to_seq
 from pyspark.context import SparkContext
 
 __all__ = ['tdigestIntUDAF', 'tdigestLongUDAF', 'tdigestFloatUDAF', 'tdigestDoubleUDAF', \
+           'tdigestDoubleUDF', \
            'tdigestMLVecUDAF', 'tdigestMLLibVecUDAF', \
            'tdigestIntArrayUDAF', 'tdigestLongArrayUDAF', \
            'tdigestFloatArrayUDAF', 'tdigestDoubleArrayUDAF', \
            'tdigestReduceUDAF', 'tdigestArrayReduceUDAF']
+
+def tdigestDoubleUDF(col, compression=0.5, maxDiscrete=0):
+    sc = SparkContext._active_spark_context
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.java.tdigestDoubleUDF( \
+        compression, maxDiscrete).apply
+    return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
 def tdigestIntUDAF(col, delta=0.5, maxDiscrete=0):
     """

@@ -13,11 +13,10 @@ class TDigestUDT(UserDefinedType):
     @classmethod
     def sqlType(cls):
         return StructType([
-            StructField("delta", DoubleType(), False),
+            StructField("compression", DoubleType(), False),
             StructField("maxDiscrete", IntegerType(), False),
-            StructField("nclusters", IntegerType(), False),
-            StructField("clustX", ArrayType(DoubleType(), False), False),
-            StructField("clustM", ArrayType(DoubleType(), False), False)])
+            StructField("cent", ArrayType(DoubleType(), False), False),
+            StructField("mass", ArrayType(DoubleType(), False), False)])
 
     @classmethod
     def module(cls):
@@ -25,21 +24,21 @@ class TDigestUDT(UserDefinedType):
 
     @classmethod
     def scalaUDT(cls):
-        return "org.apache.spark.isarnproject.sketches.udt.TDigestUDT"
+        return "org.apache.spark.isarnproject.sketches.udtdev.TDigestUDT"
 
     def simpleString(self):
         return "tdigest"
 
     def serialize(self, obj):
         if isinstance(obj, TDigest):
-            return (obj.delta, obj.maxDiscrete, obj.nclusters, \
+            return (obj.delta, obj.maxDiscrete, \
                     [float(v) for v in obj.clustX], \
                     [float(v) for v in obj.clustM])
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
     def deserialize(self, datum):
-        return TDigest(datum[0], datum[1], datum[2], datum[3], datum[4])
+        return TDigest(datum[0], datum[1], datum[2], datum[3])
 
 class TDigestArrayUDT(UserDefinedType):
     @classmethod
@@ -112,10 +111,10 @@ class TDigest(object):
     # and in the same file.
     __UDT__ = TDigestUDT()
 
-    def __init__(self, delta, maxDiscrete, nclusters, clustX, clustM):
+    def __init__(self, delta, maxDiscrete, clustX, clustM):
         self.delta = float(delta)
         self.maxDiscrete = int(maxDiscrete)
-        self.nclusters = int(nclusters)
+        self.nclusters = len(clustX)
         self.clustX = np.array(clustX, dtype=np.float64)
         self.clustM = np.array(clustM, dtype=np.float64)
         self.clustP = np.cumsum(clustM)
