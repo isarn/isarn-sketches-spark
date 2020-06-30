@@ -61,6 +61,15 @@ object TDigestAggregator {
     udaf(apply[V](compression, maxDiscrete))
 }
 
+/**
+ * Functions for languages that don't support type parameters or typeclasses
+ * (java, python, etc)
+ */
+object java {
+  def tdigestDoubleUDF(compression: Double, maxDiscrete: Int) =
+    TDigestAggregator.udf[Double](compression, maxDiscrete)
+}
+
 object infra {
   import org.apache.spark.isarnproject.sketches.udtdev.TDigestUDT
   import org.isarnproject.sketches.java.{ TDigest => BaseTD }
