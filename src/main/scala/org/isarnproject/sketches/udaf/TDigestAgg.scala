@@ -138,6 +138,15 @@ object functions {
   def tdigestDoubleUDF(compression: Double, maxDiscrete: Int) =
     TDigestAggregator.udf[Double](compression, maxDiscrete)
 
+  def tdigestIntArrayUDF(compression: Double, maxDiscrete: Int) =
+    TDigestArrayAggregator.udf[Int](compression, maxDiscrete)
+
+  def tdigestLongArrayUDF(compression: Double, maxDiscrete: Int) =
+    TDigestArrayAggregator.udf[Long](compression, maxDiscrete)
+
+  def tdigestFloatArrayUDF(compression: Double, maxDiscrete: Int) =
+    TDigestArrayAggregator.udf[Float](compression, maxDiscrete)
+
   def tdigestDoubleArrayUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayAggregator.udf[Double](compression, maxDiscrete)
 }
