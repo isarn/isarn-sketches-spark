@@ -20,7 +20,7 @@ version := s"${packageVersion}-${sparkSuffix}"
 
 scalaVersion := "2.12.11"
 
-crossScalaVersions := Seq("2.12.11") // scala 2.12.11 when spark supports it
+crossScalaVersions := Seq("2.12.11")
 
 pomIncludeRepository := { _ => false }
 
