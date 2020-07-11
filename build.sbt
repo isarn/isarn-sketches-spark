@@ -3,6 +3,8 @@
 // xsbt +publish
 // https://oss.sonatype.org
 // make sure sparkVersion is set as you want prior to +publish
+// when doing localPublish, also do:
+// rm -rf /home/eje/.ivy2/local/org.isarnproject /home/eje/.ivy2/cache/org.isarnproject
 
 import scala.sys.process._
 
