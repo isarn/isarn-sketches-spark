@@ -213,6 +213,42 @@ object TDigestMLVecAggregator {
     udaf(apply(compression, maxDiscrete))
 }
 
+class TDigestReduceAggregator(
+    compression: Double,
+    maxDiscrete: Int)
+  extends
+    Aggregator[TDigest, TDigest, TDigest]
+{
+  def zero: TDigest = new TDigest(compression, maxDiscrete)
+  def reduce(td: TDigest, tdi: TDigest): TDigest = {
+    if (tdi != null) td.merge(tdi)
+    td
+  }
+  def merge(td1: TDigest, td2: TDigest): TDigest = {
+    td1.merge(td2)
+    td1
+  }
+  def finish(td: TDigest): TDigest = td
+  def bufferEncoder: Encoder[TDigest] = ExpressionEncoder[TDigest]()
+  def outputEncoder: Encoder[TDigest] = ExpressionEncoder[TDigest]()
+}
+
+object TDigestReduceAggregator {
+  import scala.reflect.runtime.universe.TypeTag
+  import org.apache.spark.sql.functions.udaf
+  import org.apache.spark.sql.expressions.UserDefinedFunction
+
+  def apply(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestReduceAggregator =
+    new TDigestReduceAggregator(compression, maxDiscrete)
+
+  def udf(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
+    udaf(apply(compression, maxDiscrete))
+}
+
 /**
  * Convenience functions that do not require type parameters or typeclasses to invoke.
  * Use cases include java or pyspark bindings
@@ -247,6 +283,9 @@ object functions {
 
   def tdigestMLVecUDF(compression: Double, maxDiscrete: Int) =
     TDigestMLVecAggregator.udf(compression, maxDiscrete)
+
+  def tdigestReduceUDF(compression: Double, maxDiscrete: Int) =
+    TDigestReduceAggregator.udf(compression, maxDiscrete)
 }
 
 object infra {
