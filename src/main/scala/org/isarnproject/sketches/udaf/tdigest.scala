@@ -249,6 +249,51 @@ object TDigestReduceAggregator {
     udaf(apply(compression, maxDiscrete))
 }
 
+class TDigestArrayReduceAggregator(
+    compression: Double,
+    maxDiscrete: Int)
+  extends
+    Aggregator[Array[TDigest], Array[TDigest], Array[TDigest]] {
+  def zero: Array[TDigest] = Array.empty[TDigest]
+  def reduce(tdai: Array[TDigest], data: Array[TDigest]): Array[TDigest] = {
+    if (data == null) tdai else {
+      val tda = if (!tdai.isEmpty || data.isEmpty) tdai else
+        Array.fill(data.length) { new TDigest(compression, maxDiscrete) }
+      require(tda.length == data.length)
+      for { j <- 0 until tda.length } { tda(j).merge(data(j)) }
+      tda
+    }
+  }
+  def merge(td1: Array[TDigest], td2: Array[TDigest]): Array[TDigest] = {
+    if      (td1.isEmpty) td2
+    else if (td2.isEmpty) td1
+    else {
+      require(td1.length == td2.length)
+      for { j <- 0 until td1.length } { td1(j).merge(td2(j)) }
+      td1
+    }
+  }
+  def finish(td: Array[TDigest]): Array[TDigest] = td
+  def bufferEncoder: Encoder[Array[TDigest]] = ExpressionEncoder[Array[TDigest]]()
+  def outputEncoder: Encoder[Array[TDigest]] = ExpressionEncoder[Array[TDigest]]()
+}
+
+object TDigestArrayReduceAggregator {
+  import scala.reflect.runtime.universe.TypeTag
+  import org.apache.spark.sql.functions.udaf
+  import org.apache.spark.sql.expressions.UserDefinedFunction
+
+  def apply(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestArrayReduceAggregator =
+    new TDigestArrayReduceAggregator(compression, maxDiscrete)
+
+  def udf(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
+    udaf(apply(compression, maxDiscrete))
+}
+
 /**
  * Convenience functions that do not require type parameters or typeclasses to invoke.
  * Use cases include java or pyspark bindings
@@ -286,6 +331,9 @@ object functions {
 
   def tdigestReduceUDF(compression: Double, maxDiscrete: Int) =
     TDigestReduceAggregator.udf(compression, maxDiscrete)
+
+  def tdigestArrayReduceUDF(compression: Double, maxDiscrete: Int) =
+    TDigestArrayReduceAggregator.udf(compression, maxDiscrete)
 }
 
 object infra {
