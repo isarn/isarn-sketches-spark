@@ -18,6 +18,10 @@ import org.apache.spark.sql.expressions.Aggregator
 import org.apache.spark.sql.{ Encoder, Encoders }
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
+// Every time I do this I die a little inside
+import org.apache.spark.mllib.linalg.{ Vector => MLLibVec }
+import org.apache.spark.ml.linalg.{ Vector => MLVec }
+
 import infra.TDigest
 
 class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
@@ -121,6 +125,94 @@ object TDigestArrayAggregator {
     udaf(apply[V](compression, maxDiscrete))
 }
 
+class TDigestMLLibVecAggregator(
+    compression: Double,
+    maxDiscrete: Int)
+  extends
+    TDigestArrayAggregatorBase[MLLibVec](compression, maxDiscrete) {
+
+  def reduce(tdai: Array[TDigest], data: MLLibVec): Array[TDigest] = {
+    if (data == null) tdai else {
+      val tda = if (!tdai.isEmpty || (data.size == 0)) tdai else
+        Array.fill(data.size) { new TDigest(compression, maxDiscrete) }
+      require(tda.length == data.size)
+      data match {
+        case v: org.apache.spark.mllib.linalg.SparseVector =>
+          var jBeg = 0
+          v.foreachActive((j, x) => {
+            for { k <- jBeg until j } { tda(k).update(0.0) }
+            tda(j).update(x)
+            jBeg = j + 1
+          })
+          for { k <- jBeg until data.size } { tda(k).update(0.0) }
+        case _ =>
+          for { j <- 0 until data.size } { tda(j).update(data(j)) }
+      }
+      tda
+    }
+  }
+}
+
+object TDigestMLLibVecAggregator {
+  import scala.reflect.runtime.universe.TypeTag
+  import org.apache.spark.sql.functions.udaf
+  import org.apache.spark.sql.expressions.UserDefinedFunction
+
+  def apply(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestMLLibVecAggregator =
+    new TDigestMLLibVecAggregator(compression, maxDiscrete)
+
+  def udf(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
+    udaf(apply(compression, maxDiscrete))
+}
+
+class TDigestMLVecAggregator(
+    compression: Double,
+    maxDiscrete: Int)
+  extends
+    TDigestArrayAggregatorBase[MLVec](compression, maxDiscrete) {
+
+  def reduce(tdai: Array[TDigest], data: MLVec): Array[TDigest] = {
+    if (data == null) tdai else {
+      val tda = if (!tdai.isEmpty || (data.size == 0)) tdai else
+        Array.fill(data.size) { new TDigest(compression, maxDiscrete) }
+      require(tda.length == data.size)
+      data match {
+        case v: org.apache.spark.ml.linalg.SparseVector =>
+          var jBeg = 0
+          v.foreachActive((j, x) => {
+            for { k <- jBeg until j } { tda(k).update(0.0) }
+            tda(j).update(x)
+            jBeg = j + 1
+          })
+          for { k <- jBeg until data.size } { tda(k).update(0.0) }
+        case _ =>
+          for { j <- 0 until data.size } { tda(j).update(data(j)) }
+      }
+      tda
+    }
+  }
+}
+
+object TDigestMLVecAggregator {
+  import scala.reflect.runtime.universe.TypeTag
+  import org.apache.spark.sql.functions.udaf
+  import org.apache.spark.sql.expressions.UserDefinedFunction
+
+  def apply(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestMLVecAggregator =
+    new TDigestMLVecAggregator(compression, maxDiscrete)
+
+  def udf(
+      compression: Double = TDigest.compressionDefault,
+      maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
+    udaf(apply(compression, maxDiscrete))
+}
+
 /**
  * Convenience functions that do not require type parameters or typeclasses to invoke.
  * Use cases include java or pyspark bindings
@@ -149,6 +241,12 @@ object functions {
 
   def tdigestDoubleArrayUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayAggregator.udf[Double](compression, maxDiscrete)
+
+  def tdigestMLLibVecUDF(compression: Double, maxDiscrete: Int) =
+    TDigestMLLibVecAggregator.udf(compression, maxDiscrete)
+
+  def tdigestMLVecUDF(compression: Double, maxDiscrete: Int) =
+    TDigestMLVecAggregator.udf(compression, maxDiscrete)
 }
 
 object infra {
