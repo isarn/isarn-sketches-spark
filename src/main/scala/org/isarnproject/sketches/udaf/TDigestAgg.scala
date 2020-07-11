@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package org.isarnproject.sketches.spark {
+package org.isarnproject.sketches.spark.tdigest {
 
 import org.apache.spark.sql.types.SQLUserDefinedType
 import org.apache.spark.sql.expressions.Aggregator
@@ -251,7 +251,7 @@ object functions {
 
 object infra {
   import org.isarnproject.sketches.java.{ TDigest => BaseTD }
-  import org.apache.spark.isarnproject.sketches.udtdev.TDigestUDT
+  import org.apache.spark.isarnproject.sketches.tdigest.udt.TDigestUDT
 
   // the only reason for this shim class is to link it to TDigestUDT
   // the user does not need to see this shim, and can do:
@@ -320,7 +320,7 @@ object infra {
 } // package
 
 // I need to accept that Spark is never going to fix this.
-package org.apache.spark.isarnproject.sketches.udtdev {
+package org.apache.spark.isarnproject.sketches.tdigest.udt {
 
 import java.util.Arrays
 
@@ -328,7 +328,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArrayData}
 
-import org.isarnproject.sketches.spark.infra.TDigest
+import org.isarnproject.sketches.spark.tdigest.infra.TDigest
 
 class TDigestUDT extends UserDefinedType[TDigest] {
   def userClass: Class[TDigest] = classOf[TDigest]
@@ -376,6 +376,15 @@ class TDigestUDT extends UserDefinedType[TDigest] {
       new TDigest(compression, maxDiscrete, clustX, clustM)
     case u => throw new Exception(s"failed to deserialize: $u")
   }
+}
+
+/** Shims for exposing Spark's VectorUDT objects outside of org.apache.spark scope */
+object infra {
+  private object udtML extends org.apache.spark.ml.linalg.VectorUDT
+  def udtVectorML: DataType = udtML
+
+  private object udtMLLib extends org.apache.spark.mllib.linalg.VectorUDT
+  def udtVectorMLLib: DataType = udtMLLib
 }
 
 } // package

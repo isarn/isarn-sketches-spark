@@ -17,7 +17,7 @@ def tdigestIntUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestIntUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestIntUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -31,7 +31,7 @@ def tdigestLongUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestLongUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestLongUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -45,7 +45,7 @@ def tdigestFloatUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestFloatUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestFloatUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -59,7 +59,7 @@ def tdigestDoubleUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestDoubleUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestDoubleUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -73,7 +73,7 @@ def tdigestMLVecUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestMLVecUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestMLVecUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -87,7 +87,7 @@ def tdigestMLLibVecUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestMLLibVecUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestMLLibVecUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -101,7 +101,7 @@ def tdigestIntArrayUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestIntArrayUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestIntArrayUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -115,7 +115,7 @@ def tdigestLongArrayUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestLongArrayUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestLongArrayUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -129,7 +129,7 @@ def tdigestFloatArrayUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestFloatArrayUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestFloatArrayUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -143,7 +143,7 @@ def tdigestDoubleArrayUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestDoubleArrayUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestDoubleArrayUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -157,7 +157,7 @@ def tdigestReduceUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestReduceUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestReduceUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))
 
@@ -171,6 +171,6 @@ def tdigestArrayReduceUDF(col, compression=0.5, maxDiscrete=0):
         continuous (default 0)
     """
     sc = SparkContext._active_spark_context
-    tdapply = sc._jvm.org.isarnproject.sketches.spark.functions.tdigestArrayReduceUDF( \
+    tdapply = sc._jvm.org.isarnproject.sketches.spark.tdigest.functions.tdigestArrayReduceUDF( \
         compression, maxDiscrete).apply
     return Column(tdapply(_to_seq(sc, [col], _to_java_column)))

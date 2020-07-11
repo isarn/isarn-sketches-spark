@@ -33,8 +33,7 @@ import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
 import org.apache.spark.sql.Row
 
 import org.isarnproject.sketches.TDigest
-import org.apache.spark.isarnproject.sketches.udt._
-import org.isarnproject.sketches.udaf._
+import org.apache.spark.isarnproject.sketches.tdigest.udt.infra.udtVectorML
 
 // Defining these in a subpackage so the package can have other
 // param definitions added to it elsewhere. I'm keeping them visible
@@ -183,7 +182,7 @@ class TDigestFIModel(
   def transformSchema(schema: StructType): StructType = {
     require(schema.fieldNames.contains($(featuresCol)))
     schema($(featuresCol)) match {
-      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+      case sf: StructField => require(sf.dataType.equals(udtVectorML))
     }
 
     // Output is two columns: feature names and corresponding importances
@@ -262,7 +261,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
   def transformSchema(schema: StructType): StructType = {
     require(schema.fieldNames.contains($(featuresCol)))
     schema($(featuresCol)) match {
-      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+      case sf: StructField => require(sf.dataType.equals(udtVectorML))
     }
     // I can't figure out the purpose for outputting a modified schema here.
     // Until further notice I'm going to output an empty one.
