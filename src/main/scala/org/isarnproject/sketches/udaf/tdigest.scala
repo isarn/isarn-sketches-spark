@@ -253,8 +253,7 @@ class TDigestArrayReduceAggregator(
     compression: Double,
     maxDiscrete: Int)
   extends
-    Aggregator[Array[TDigest], Array[TDigest], Array[TDigest]] {
-  def zero: Array[TDigest] = Array.empty[TDigest]
+    TDigestArrayAggregatorBase[Array[TDigest]](compression, maxDiscrete) {
   def reduce(tdai: Array[TDigest], data: Array[TDigest]): Array[TDigest] = {
     if (data == null) tdai else {
       val tda = if (!tdai.isEmpty || data.isEmpty) tdai else
@@ -264,18 +263,6 @@ class TDigestArrayReduceAggregator(
       tda
     }
   }
-  def merge(td1: Array[TDigest], td2: Array[TDigest]): Array[TDigest] = {
-    if      (td1.isEmpty) td2
-    else if (td2.isEmpty) td1
-    else {
-      require(td1.length == td2.length)
-      for { j <- 0 until td1.length } { td1(j).merge(td2(j)) }
-      td1
-    }
-  }
-  def finish(td: Array[TDigest]): Array[TDigest] = td
-  def bufferEncoder: Encoder[Array[TDigest]] = ExpressionEncoder[Array[TDigest]]()
-  def outputEncoder: Encoder[Array[TDigest]] = ExpressionEncoder[Array[TDigest]]()
 }
 
 object TDigestArrayReduceAggregator {
