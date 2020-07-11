@@ -65,9 +65,7 @@ object TDigestAggregator {
     udaf(apply[V](compression, maxDiscrete))
 }
 
-abstract class TDigestArrayAggregatorBase[V](
-    compression: Double,
-    maxDiscrete: Int)
+abstract class TDigestArrayAggregatorBase[V]
   extends
     Aggregator[V, Array[TDigest], Array[TDigest]] {
   def zero: Array[TDigest] = Array.empty[TDigest]
@@ -91,7 +89,7 @@ class TDigestArrayAggregator[V](
   implicit
     vnum: infra.ScalarNumeric[V])
   extends
-    TDigestArrayAggregatorBase[Array[V]](compression, maxDiscrete) {
+    TDigestArrayAggregatorBase[Array[V]] {
 
   def reduce(tdai: Array[TDigest], data: Array[V]): Array[TDigest] = {
     if (data == null) tdai else {
@@ -129,7 +127,7 @@ class TDigestMLLibVecAggregator(
     compression: Double,
     maxDiscrete: Int)
   extends
-    TDigestArrayAggregatorBase[MLLibVec](compression, maxDiscrete) {
+    TDigestArrayAggregatorBase[MLLibVec] {
 
   def reduce(tdai: Array[TDigest], data: MLLibVec): Array[TDigest] = {
     if (data == null) tdai else {
@@ -173,7 +171,7 @@ class TDigestMLVecAggregator(
     compression: Double,
     maxDiscrete: Int)
   extends
-    TDigestArrayAggregatorBase[MLVec](compression, maxDiscrete) {
+    TDigestArrayAggregatorBase[MLVec] {
 
   def reduce(tdai: Array[TDigest], data: MLVec): Array[TDigest] = {
     if (data == null) tdai else {
@@ -253,7 +251,8 @@ class TDigestArrayReduceAggregator(
     compression: Double,
     maxDiscrete: Int)
   extends
-    TDigestArrayAggregatorBase[Array[TDigest]](compression, maxDiscrete) {
+    TDigestArrayAggregatorBase[Array[TDigest]] {
+
   def reduce(tdai: Array[TDigest], data: Array[TDigest]): Array[TDigest] = {
     if (data == null) tdai else {
       val tda = if (!tdai.isEmpty || data.isEmpty) tdai else
