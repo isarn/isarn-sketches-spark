@@ -2,7 +2,7 @@
 Routines and data structures for using isarn-sketches idiomatically in Apache Spark
 
 ## API documentation
-https://isarn.github.io/isarn-sketches-spark/latest/api/#org.isarnproject.sketches.udaf.package
+https://isarn.github.io/isarn-sketches-spark/latest/api/#org.isarnproject.sketches.spark
 
 ## How to use in your project
 
@@ -43,9 +43,9 @@ Note that you need to explicitly include the scala version as part of the packag
 
 ### Sketch a numeric column
 ```scala
-scala> import org.isarnproject.sketches._, org.isarnproject.sketches.udaf._, org.apache.spark.isarnproject.sketches.udt._
+scala> import org.isarnproject.sketches._, org.isarnproject.sketches.spark._, org.apache.spark.isarnproject.sketches.udt._
 import org.isarnproject.sketches._
-import org.isarnproject.sketches.udaf._
+import org.isarnproject.sketches.spark._
 import org.apache.spark.isarnproject.sketches.udt._
 
 scala> import scala.util.Random.nextGaussian
@@ -250,11 +250,11 @@ scala> td.show()
 
 ### Sketch a numeric column (python)
 ```python
->>> from isarnproject.sketches.udaf.tdigest import *
+>>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
 >>> data = sc.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
->>> agg = data.agg(tdigestDoubleUDAF("x"))
+>>> agg = data.agg(tdigestDoubleUDF("x"))
 >>> td = agg.first()[0]
 >>> td.cdfInverse(0.5)
 0.046805581998797419
@@ -263,11 +263,11 @@ scala> td.show()
 
 ### Sketch a numeric array column (python)
 ```python
->>> from isarnproject.sketches.udaf.tdigest import *
+>>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
 >>> data = sc.parallelize([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(1000)]).toDF(StructType([StructField("x", ArrayType(DoubleType()))]))
->>> agg = data.agg(tdigestDoubleArrayUDAF("x"))
+>>> agg = data.agg(tdigestDoubleArrayUDF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds] 
 [0.046116924117141189, -0.011071666930287466, -0.019006033872431105]
@@ -276,12 +276,12 @@ scala> td.show()
 
 ### Sketch a column of ML Vectors (python)
 ```python
->>> from isarnproject.sketches.udaf.tdigest import *
+>>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.ml.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
 >>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> agg = data.agg(tdigestMLVecUDAF("x"))
+>>> agg = data.agg(tdigestMLVecUDF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds]
 [0.02859498787770634, -0.0027338622700039117, 0.041590980872883487]
@@ -290,12 +290,12 @@ scala> td.show()
 
 ### Sketch a column of MLLib Vectors (python)
 ```python
->>> from isarnproject.sketches.udaf.tdigest import *
+>>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.mllib.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
 >>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> agg = data.agg(tdigestMLLibVecUDAF("x"))
+>>> agg = data.agg(tdigestMLLibVecUDF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds]
 [0.02859498787770634, -0.0027338622700039117, 0.041590980872883487]
@@ -304,13 +304,13 @@ scala> td.show()
 
 ### Reduce a column (or grouping) of T-Digests (python)
 ```python
->>> from isarnproject.sketches.udaf.tdigest import *
+>>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
 >>> x = sc.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
 >>> g = sc.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
 >>> data = g.crossJoin(x)
->>> tds = data.groupBy("g").agg(tdigestDoubleUDAF("x").alias("tdigests"))
+>>> tds = data.groupBy("g").agg(tdigestDoubleUDF("x").alias("tdigests"))
 >>> tds.show()
 +---+--------------------+                                                      
 |  g|            tdigests|
@@ -322,7 +322,7 @@ scala> td.show()
 |  2|TDigestSQL(TDiges...|
 +---+--------------------+
 
->>> td = tds.agg(tdigestReduceUDAF("tdigests").alias("tdigest"))
+>>> td = tds.agg(tdigestReduceUDF("tdigests").alias("tdigest"))
 >>> td.show()
 +--------------------+                                                          
 |             tdigest|
@@ -335,14 +335,14 @@ scala> td.show()
 
 ### Reduce a column (or grouping) of T-Digest Arrays (python)
 ```python
->>> from isarnproject.sketches.udaf.tdigest import *
+>>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.ml.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
 >>> x = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
 >>> g = sc.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
 >>> data = g.crossJoin(x)
->>> tds = data.groupBy("g").agg(tdigestMLVecUDAF("x").alias("tdigests"))
+>>> tds = data.groupBy("g").agg(tdigestMLVecUDF("x").alias("tdigests"))
 >>> tds.show()
 +---+--------------------+                                                      
 |  g|            tdigests|
@@ -354,7 +354,7 @@ scala> td.show()
 |  2|TDigestArraySQL([...|
 +---+--------------------+
 
->>> td = tds.agg(tdigestArrayReduceUDAF("tdigests").alias("tdigest"))
+>>> td = tds.agg(tdigestArrayReduceUDF("tdigests").alias("tdigest"))
 >>> td.show()
 +--------------------+                                                          
 |             tdigest|
