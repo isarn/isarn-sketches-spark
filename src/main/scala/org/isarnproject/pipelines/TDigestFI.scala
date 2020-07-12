@@ -13,9 +13,6 @@ limitations under the License.
 
 package org.isarnproject.pipelines
 
-import scala.reflect.ClassTag
-import scala.collection.mutable.WrappedArray
-
 import org.apache.spark.ml.{Estimator, Model, PredictionModel}
 import org.apache.spark.ml.classification.ClassificationModel
 import org.apache.spark.ml.regression.RegressionModel
