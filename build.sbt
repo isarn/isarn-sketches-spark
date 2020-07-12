@@ -91,10 +91,8 @@ mappings in (Compile, packageBin) ++= Seq(
   (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "__init__.py") -> "isarnproject/pipelines/__init__.py",
   (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "fi.py") -> "isarnproject/pipelines/fi.py",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.py") -> "isarnproject/sketches/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "__init__.py") -> "isarnproject/sketches/udaf/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.py") -> "isarnproject/sketches/udaf/tdigest.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "__init__.py") -> "isarnproject/sketches/udt/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "tdigest.py") -> "isarnproject/sketches/udt/tdigest.py"
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "spark" / "__init__.py") -> "isarnproject/sketches/spark/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "spark" / "tdigest.py") -> "isarnproject/sketches/spark/tdigest.py",
 )
 
 test in assembly := {}
