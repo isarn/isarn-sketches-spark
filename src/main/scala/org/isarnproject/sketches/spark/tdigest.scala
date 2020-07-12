@@ -406,7 +406,7 @@ import org.isarnproject.sketches.spark.tdigest.infra.TDigest
 class TDigestUDT extends UserDefinedType[TDigest] {
   def userClass: Class[TDigest] = classOf[TDigest]
 
-  override def pyUDT: String = "isarnproject.sketches.udt.tdigest.TDigestUDT"
+  override def pyUDT: String = "isarnproject.sketches.spark.tdigest.TDigestUDT"
 
   override def typeName: String = "tdigest"
 
