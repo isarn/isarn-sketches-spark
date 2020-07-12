@@ -27,7 +27,7 @@ import org.apache.spark.ml.linalg.{Vector => MLVector,
   DenseVector => MLDense, SparseVector => MLSparse}
 import org.apache.spark.sql.Row
 
-import org.isarnproject.sketches.TDigest
+import org.isarnproject.sketches.java.TDigest
 import org.apache.spark.isarnproject.sketches.tdigest.udt.infra.udtVectorML
 
 // Defining these in a subpackage so the package can have other
@@ -211,7 +211,7 @@ class TDigestFIModel(
         val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
         for { j <- 0 until m } {
           val t = farr(j)
-          farr(j) = ftd(j).sample
+          farr(j) = ftd(j).sample()
           val pred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
           farr(j) = t
           dev(j) += fdev(refpred, pred)
@@ -274,13 +274,13 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
           case v: MLSparse =>
             var jBeg = 0
             v.foreachActive((j, x) => {
-              for { k <- jBeg until j } { td(k) += 0.0 }
-              td(j) += x
+              for { k <- jBeg until j } { td(k).update(0.0) }
+              td(j).update(x)
               jBeg = j + 1
             })
-            for { k <- jBeg until v.size } { td(k) += 0.0 }
+            for { k <- jBeg until v.size } { td(k).update(0.0) }
           case _ =>
-            for { j <- 0 until fv.size } { td(j) += fv(j) }
+            for { j <- 0 until fv.size } { td(j).update(fv(j)) }
         }
         td
       },
@@ -292,7 +292,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
         } else {
           require(td1.length == td2.length, "mismatched t-digest arrays")
           for { j <- 0 until td1.length } {
-            td1(j) ++= td2(j)
+            td1(j).merge(td2(j))
           }
           td1
         })
