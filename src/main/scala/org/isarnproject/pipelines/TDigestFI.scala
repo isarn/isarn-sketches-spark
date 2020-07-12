@@ -28,8 +28,6 @@ import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.linalg.{Vector => MLVector,
   DenseVector => MLDense, SparseVector => MLSparse}
-import org.apache.spark.sql.expressions.MutableAggregationBuffer
-import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
 import org.apache.spark.sql.Row
 
 import org.isarnproject.sketches.TDigest
