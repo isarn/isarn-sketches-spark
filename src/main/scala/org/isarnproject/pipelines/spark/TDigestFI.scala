@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package org.isarnproject.pipelines
+package org.isarnproject.pipelines.spark
 
 import org.apache.spark.ml.{Estimator, Model, PredictionModel}
 import org.apache.spark.ml.classification.ClassificationModel
@@ -142,6 +142,8 @@ package params {
 }
 
 import params._
+
+package fi {
 
 /**
  * Model/Transformer for transforming input feature data into a DataFrame containing
@@ -301,3 +303,5 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
     model
   }
 }
+
+} // package fi

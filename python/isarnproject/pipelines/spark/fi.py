@@ -92,7 +92,7 @@ class TDigestFI(JavaEstimator, TDigestFIParams, JavaMLWritable, JavaMLReadable):
     @keyword_only
     def __init__(self, delta = 0.5, maxDiscrete = 0, featuresCol = "features"):
         super(TDigestFI, self).__init__()
-        self._java_obj = self._new_java_obj("org.isarnproject.pipelines.TDigestFI", self.uid)
+        self._java_obj = self._new_java_obj("org.isarnproject.pipelines.spark.fi.TDigestFI", self.uid)
         self._setDefault(delta = 0.5, maxDiscrete = 0, featuresCol = "features")
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
