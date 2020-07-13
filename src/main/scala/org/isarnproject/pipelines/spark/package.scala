@@ -11,11 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package org.isarnproject
+package org.isarnproject.pipelines
 
 import scala.language.existentials
 
-package object pipelines {
+package object spark {
   private[pipelines] def inheritances(obj: Any): Seq[String] = {
     var ih: List[Class[_]] = Nil
     var sc = obj.getClass.getSuperclass
