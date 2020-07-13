@@ -89,7 +89,8 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 mappings in (Compile, packageBin) ++= Seq(
   (baseDirectory.value / "python" / "isarnproject" / "__init__.py") -> "isarnproject/__init__.py",
   (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "__init__.py") -> "isarnproject/pipelines/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "fi.py") -> "isarnproject/pipelines/fi.py",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "spark" /  "__init__.py") -> "isarnproject/pipelines/spark/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "spark" / "fi.py") -> "isarnproject/pipelines/spark/fi.py",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.py") -> "isarnproject/sketches/__init__.py",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "spark" / "__init__.py") -> "isarnproject/sketches/spark/__init__.py",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "spark" / "tdigest.py") -> "isarnproject/sketches/spark/tdigest.py",
