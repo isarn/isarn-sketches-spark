@@ -1,7 +1,7 @@
 import sys
 import random
-
-import numpy as np
+import itertools as it
+from bisect import bisect_left, bisect_right
 
 from pyspark.sql.types import UserDefinedType, StructField, StructType, \
     ArrayType, DoubleType, IntegerType
@@ -204,9 +204,7 @@ class TDigestUDT(UserDefinedType):
 
     def serialize(self, obj):
         if isinstance(obj, TDigest):
-            return (obj.delta, obj.maxDiscrete, \
-                    [float(v) for v in obj.clustX], \
-                    [float(v) for v in obj.clustM])
+            return (obj.compression, obj.maxDiscrete, obj._cent, obj._mass)
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -216,104 +214,93 @@ class TDigestUDT(UserDefinedType):
 class TDigest(object):
     """
     A T-Digest sketch of a cumulative numeric distribution.
-    This is a "read-only" python mirror of org.isarnproject.sketches.TDigest which supports
+    This is a "read-only" python mirror of org.isarnproject.sketches.java.TDigest which supports
     all cdf and sampling methods, but does not currently support update with new data. It is
-    assumed to have been produced with a t-digest UDAF, also exposed in this package.
+    assumed to have been produced with a t-digest aggregating UDF, also exposed in this package.
     """
 
     # Because this is a value and not a function, TDigestUDT has to be defined above,
     # and in the same file.
     __UDT__ = TDigestUDT()
 
-    def __init__(self, delta, maxDiscrete, clustX, clustM):
-        self.delta = float(delta)
+    def __init__(self, compression, maxDiscrete, cent, mass):
+        self.compression = float(compression)
         self.maxDiscrete = int(maxDiscrete)
-        self.nclusters = len(clustX)
-        self.clustX = np.array(clustX, dtype=np.float64)
-        self.clustM = np.array(clustM, dtype=np.float64)
-        self.clustP = np.cumsum(clustM)
-        assert len(self.clustX) == self.nclusters, "nclusters does not match cluster mass array"
-        assert len(self.clustX) == len(self.clustM), "cluster mass array does not match cluster center array"
+        assert self.compression > 0.0, "compression must be > 0"
+        assert self.maxDiscrete >= 0, "maxDiscrete must be >= 0"
+        self._cent = [float(v) for v in cent]
+        self._mass = [float(v) for v in mass]
+        assert len(self._mass) == len(self._cent), "cluster mass and cent must have same dimension"
+        self.nclusters = len(self._cent)
+        # Current implementation is "read only" so we can just store cumulative sum here.
+        # To support updating, 'csum' would need to become a Fenwick tree array
+        self._csum = list(it.accumulate(self._mass))
 
     def __repr__(self):
         return "TDigest(%s, %s, %s, %s, %s)" % \
-            (repr(self.delta), repr(self.maxDiscrete), repr(self.nclusters), repr(self.clustX), repr(self.clustM))
+            (repr(self.compression), repr(self.maxDiscrete), repr(self.nclusters), repr(self._cent), repr(self._mass))
 
     def mass(self):
         """
         Total mass accumulated by this TDigest
         """
-        if len(self.clustP) == 0:
-            return 0.0
-        return self.clustP[-1]
+        if len(self._csum) == 0: return 0.0
+        return self._csum[-1]
+
+    def size(self):
+        """
+        Number of clusters in this TDigest
+        """
+        return len(self._cent)
 
     def isEmpty(self):
         """
         Returns True if this TDigest is empty, False otherwise
         """
-        return len(self.clustX) == 0
+        return len(self._cent) == 0
 
     def __reduce__(self):
-        return (self.__class__, (self.delta, self.maxDiscrete, self.nclusters, self.clustX, self.clustM, ))
+        return (self.__class__, (self.compression, self.maxDiscrete, self.nclusters, self._cent, self._mass, ))
 
-    # The "right cover" of a value x, w.r.t. the clusters in this TDigest
-    def __covR__(self, x):
-        n = len(self.clustX)
-        if n == 0:
-            return Cover(None, None)
-        j = np.searchsorted(self.clustX, x, side='right')
-        if j == n:
-            return Cover(n - 1, None)
-        if x < self.clustX[0]:
-            return Cover(None, 0)
-        return Cover(j - 1, j)
+    def _lmcovj(self, m):
+        assert self.nclusters >= 2
+        assert (m >= 0.0) and (m <= self.mass())
+        return bisect_left(self._csum, m)
 
-    # The "mass cover" of a mass m, w.r.t. the clusters in this TDigest
-    def __covM__(self, m):
-        n = len(self.clustP)
-        if n == 0:
-            return Cover(None, None)
-        j = np.searchsorted(self.clustP, m, side='right')
-        if j == n:
-            return Cover(n - 1, None)
-        if m < self.clustP[0]:
-            return Cover(None, 0)
-        return Cover(j - 1, j)
+    def _rmcovj(self, m):
+        assert self.nclusters >= 2
+        assert (m >= 0.0) and (m <= self.mass())
+        return bisect_right(self._csum, m) - 1
 
-    # Get a "corrected mass" for two clusters.
-    # Returns "centered" mass for interior clusters, and uncentered for edge clusters.
-    def __m1m2__(self, j, c1, tm1, c2, tm2):
-        assert len(self.clustX) > 0, "unexpected empty TDigest"
-        # s is the "open" prefix sum, for x < c1
-        s = self.clustP[j] - tm1
-        d1 = 0.0 if c1 == self.clustX[0] else tm1 / 2.0
-        d2 = tm2 if c2 == self.clustX[-1] else tm2 / 2.0
-        m1 = s + d1
-        m2 = m1 + (tm1 - d1) + d2
-        return (m1, m2)
+    def _rcovj(self, x):
+        return bisect_right(self._cent, x) - 1
 
-    # Get the inverse CDF, using the "corrected mass"
-    def __cdfI__(self, j, m, c1, tm1, c2, tm2):
-        m1, m2 = self.__m1m2__(j, c1, tm1, c2, tm2)
-        x = c1 + (m - m1) * (c2 - c1) / (m2 - m1)
-        return min(c2, max(c1, x))
+    # emulates behavior from isarn java TDigest, which computes
+    # cumulative sum via a Fenwick tree
+    def _ftSum(self, j):
+        if (j < 0): return 0.0
+        if (j >= self.nclusters): return self.mass()
+        return self._csum[j]
 
     def cdf(self, xx):
         """
         Return CDF(x) of a numeric value x, with respect to this TDigest CDF sketch.
         """
         x = float(xx)
-        jcov = self.__covR__(x)
-        cov = jcov.map(lambda j: (self.clustX[j], self.clustM[j]))
-        if (not cov.l.isEmpty()) and (not cov.r.isEmpty()):
-            c1, tm1 = cov.l.get()
-            c2, tm2 = cov.r.get()
-            m1, m2 = self.__m1m2__(jcov.l.get(), c1, tm1, c2, tm2)
-            m = m1 + (x - c1) * (m2 - m1) / (c2 - c1)
-            return min(m2, max(m1, m)) / self.mass()
-        if cov.r.isEmpty():
-            return 1.0
-        return 0.0
+        j1 = self._rcovj(x)
+        if (j1 < 0): return 0.0
+        if (j1 >= self.nclusters - 1): return 1.0
+        j2 = j1 + 1
+        c1 = self._cent[j1]
+        c2 = self._cent[j2]
+        tm1 = self._mass[j1]
+        tm2 = self._mass[j2]
+        s = self._ftSum(j1 - 1)
+        d1 = 0.0 if (j1 == 0) else tm1 / 2.0
+        m1 = s + d1
+        m2 = m1 + (tm1 - d1) + (tm2 if (j2 == self.nclusters - 1) else tm2 / 2.0)
+        m = m1 + (x - c1) * (m2 - m1) / (c2 - c1)
+        return min(m2, max(m1, m)) / self.mass()
 
     def cdfInverse(self, qq):
         """
@@ -321,56 +308,45 @@ class TDigest(object):
         Returns NaN for any q > 1 or < 0, or if this TDigest is empty.
         """
         q = float(qq)
-        if (q < 0.0) or (q > 1.0):
-            return float('nan')
-        if self.isEmpty():
-            return float('nan')
-        jcov = self.__covM__(q * self.mass())
-        cov = jcov.map(lambda j: (self.clustX[j], self.clustM[j]))
+        if (q < 0.0) or (q > 1.0): return float('nan')
+        if (self.nclusters == 0): return float('nan')
+        if (self.nclusters == 1): return self._cent[0]
         m = q * self.mass()
-        if (not cov.l.isEmpty()) and (not cov.r.isEmpty()):
-            c1, tm1 = cov.l.get()
-            c2, tm2 = cov.r.get()
-            return self.__cdfI__(jcov.l.get(), m, c1, tm1, c2, tm2)
-        if not cov.r.isEmpty():
-            c = cov.r.get()[0]
-            jcovR = self.__covR__(c)
-            covR = jcovR.map(lambda j: (self.clustX[j], self.clustM[j]))
-            if (not covR.l.isEmpty()) and (not covR.r.isEmpty()):
-                c1, tm1 = covR.l.get()
-                c2, tm2 = covR.r.get()
-                return self.__cdfI__(jcovR.l.get(), m, c1, tm1, c2, tm2)
-            return float('nan')
-        if not cov.l.isEmpty():
-            c = cov.l.get()[0]
-            return c
-        return float('nan')
+        j1 = self._rmcovj(m)
+        j2 = j1 + 1
+        c1 = self._cent[j1]
+        c2 = self._cent[j2]
+        tm1 = self._mass[j1]
+        tm2 = self._mass[j2]
+        s = self._ftSum(j1 - 1)
+        d1 = 0.0 if (j1 == 0) else tm1 / 2.0
+        m1 = s + d1
+        m2 = m1 + (tm1 - d1) + (tm2 if (j2 == self.nclusters - 1) else tm2 / 2.0)
+        x = c1 + (m - m1) * (c2 - c1) / (m2 - m1)
+        return min(c2, max(c1, x))
 
     def cdfDiscrete(self, xx):
         """
         return CDF(x) for a numeric value x, assuming the sketch is representing a
         discrete distribution.
         """
-        if self.isEmpty():
-            return 0.0
-        j = np.searchsorted(self.clustX, float(xx), side='right')
-        if (j == 0):
-            return 0.0
-        return self.clustP[j - 1] / self.mass()
+        x = float(xx)
+        j = self._rcovj(x)
+        return self._ftSum(j) / self.mass()
 
     def cdfDiscreteInverse(self, qq):
         """
         Given a value q on [0,1], return the value x such that CDF(x) = q, assuming
         the sketch is represenging a discrete distribution.
         Returns NaN for any q > 1 or < 0, or if this TDigest is empty.
-        """        
+        """
         q = float(qq)
-        if (q < 0.0) or (q > 1.0):
-            return float('nan')
-        if self.isEmpty():
-            return float('nan')
-        j = np.searchsorted(self.clustP, q * self.mass(), side='left')
-        return self.clustX[j]
+        if (q < 0.0) or (q > 1.0): return float('nan')
+        if self.nclusters == 0: return float('nan')
+        if self.nclusters == 1: return self._cent[0]
+        m = q * self.mass()
+        j = self._lmcovj(m)
+        return self._cent[j]
 
     def samplePDF(self):
         """
@@ -395,43 +371,3 @@ class TDigest(object):
         if self.maxDiscrete <= self.nclusters:
             return self.cdfDiscreteInverse(random.random())
         return self.cdfInverse(random.random())
-
-class Cover(object):
-    """
-    Analog of org.isarnproject.collections.mixmaps.nearest.Cover[Any].
-    Not intended for public consumption.
-    """
-    def __repr__(self):
-        return "Cover(%s, %s)" % (repr(self.l), repr(self.r))
-
-    def __init__(self, l, r):
-        self.l = Option(l)
-        self.r = Option(r)
-
-    def map(self, f):
-        assert hasattr(f, '__call__'), "f must be callable"
-        return Cover(self.l.map(f).value, self.r.map(f).value)
-
-class Option(object):
-    """
-    Analog of Scala Option[Any]. I only implemented the methods I need.
-    Not intented for public consumption.
-    """
-    def __repr__(self):
-        return "Option(%s)" % (repr(self.value))
-
-    def __init__(self, v):
-        self.value = v
-
-    def get(self):
-        assert self.value is not None, "Opt value was None"
-        return self.value
-
-    def map(self, f):
-        assert hasattr(f, '__call__'), "f must be callable"
-        if self.value is None:
-            return Option(None)
-        return Option(f(self.value))
-
-    def isEmpty(self):
-        return self.value is None
