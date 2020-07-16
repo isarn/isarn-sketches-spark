@@ -54,7 +54,7 @@ import scala.util.Random.nextGaussian
 scala> val data = sc.parallelize(Vector.fill(1000){(nextGaussian, nextGaussian)}).toDF.as[(Double, Double)]
 data: org.apache.spark.sql.Dataset[(Double, Double)] = [_1: double, _2: double]
 
-scala> val udaf = tdigestUDAF[Double].delta(0.2).maxDiscrete(25)
+scala> val udaf = tdigestUDAF[Double].compression(0.2).maxDiscrete(25)
 udaf: org.isarnproject.sketches.udaf.TDigestUDAF[Double] = TDigestUDAF(0.2,25)
 
 scala> val agg = data.agg(udaf($"_1"), udaf($"_2"))
@@ -382,7 +382,7 @@ val lrModel = lr.fit(training)
 
 import org.isarnproject.pipelines.{TDigestFI,TDigestFIModel}
 
-val fi = new TDigestFI().setDelta(0.3).setMaxDiscrete(10)
+val fi = new TDigestFI().setCompression(0.3).setMaxDiscrete(10)
 
 val fiMod = fi.fit(training)
   .setTargetModel(lrModel)
@@ -427,7 +427,7 @@ scala> imp.show
 >>> lr = LinearRegression(maxIter=10, regParam=0.3, elasticNetParam=0.8)
 >>> lrModel = lr.fit(training)
 >>> from isarnproject.pipelines.fi import *
->>> fi = TDigestFI().setDelta(0.3).setMaxDiscrete(10)
+>>> fi = TDigestFI().setCompression(0.3).setMaxDiscrete(10)
 >>> fiMod = fi.fit(training) \
 ...     .setTargetModel(lrModel) \
 ...     .setDeviationMeasure("rms-dev") \

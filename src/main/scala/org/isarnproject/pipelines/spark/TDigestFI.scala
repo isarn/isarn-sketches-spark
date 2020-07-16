@@ -54,11 +54,11 @@ package params {
      * Defaults to 0.5
      * @group param
      */
-    final val delta: DoubleParam =
-      new DoubleParam(this, "delta", "t-digest compression (> 0)", ParamValidators.gt(0.0))
-    setDefault(delta, org.isarnproject.sketches.TDigest.deltaDefault)
-    final def getDelta: Double = $(delta)
-    final def setDelta(value: Double): this.type = set(delta, value)
+    final val compression: DoubleParam =
+      new DoubleParam(this, "compression", "t-digest compression (> 0)", ParamValidators.gt(0.0))
+    setDefault(compression, 0.5)
+    final def getCompression: Double = $(compression)
+    final def setCompression(value: Double): this.type = set(compression, value)
 
     /**
      * Maximum number of discrete values to sketch before transitioning to continuous mode
@@ -270,7 +270,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
       .treeAggregate(Array.empty[TDigest])({ case (ttd, Row(fv: MLVector)) =>
         val m = fv.size
         val td =
-          if (ttd.length > 0) ttd else Array.fill(m)(TDigest.empty($(delta), $(maxDiscrete)))
+          if (ttd.length > 0) ttd else Array.fill(m)(TDigest.empty($(compression), $(maxDiscrete)))
         require(td.length == m, "Inconsistent feature vector size $m")
         fv match {
           case v: MLSparse =>
