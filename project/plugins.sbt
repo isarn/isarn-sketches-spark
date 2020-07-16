@@ -15,6 +15,8 @@ addSbtPlugin("io.crashbox" % "sbt-gpg" % "0.2.1")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.2")
 
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.15.0")
+
 // scoverage and coveralls deps are at old versions to avoid a bug in the current versions
 // update these when this fix is released:  https://github.com/scoverage/sbt-coveralls/issues/73
 //addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.0.4")
