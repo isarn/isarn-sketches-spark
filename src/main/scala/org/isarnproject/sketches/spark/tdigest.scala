@@ -26,6 +26,8 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.mllib.linalg.{ Vector => MLLibVec }
 import org.apache.spark.ml.linalg.{ Vector => MLVec }
 
+import org.isarnproject.sketches.spark.infra.ScalarNumeric
+
 import infra.TDigest
 
 /**
@@ -36,7 +38,7 @@ import infra.TDigest
  */
 class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
   implicit
-    vnum: infra.ScalarNumeric[V])
+    vnum: ScalarNumeric[V])
   extends
     Aggregator[V, TDigest, TDigest]
 {
@@ -70,7 +72,7 @@ object TDigestAggregator {
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
     implicit
-      vnum: infra.ScalarNumeric[V]): TDigestAggregator[V] =
+      vnum: ScalarNumeric[V]): TDigestAggregator[V] =
     new TDigestAggregator[V](compression, maxDiscrete)
 
   /**
@@ -84,7 +86,7 @@ object TDigestAggregator {
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
     implicit
-      vnum: infra.ScalarNumeric[V],
+      vnum: ScalarNumeric[V],
       ttV: TypeTag[V]): UserDefinedFunction =
     udaf(apply[V](compression, maxDiscrete))
 }
@@ -123,7 +125,7 @@ class TDigestArrayAggregator[V](
     compression: Double,
     maxDiscrete: Int)(
   implicit
-    vnum: infra.ScalarNumeric[V])
+    vnum: ScalarNumeric[V])
   extends
     TDigestArrayAggregatorBase[Array[V]] {
 
@@ -154,7 +156,7 @@ object TDigestArrayAggregator {
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
     implicit
-      vnum: infra.ScalarNumeric[V]): TDigestArrayAggregator[V] =
+      vnum: ScalarNumeric[V]): TDigestArrayAggregator[V] =
     new TDigestArrayAggregator[V](compression, maxDiscrete)
 
   /**
@@ -168,7 +170,7 @@ object TDigestArrayAggregator {
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
     implicit
-      vnum: infra.ScalarNumeric[V],
+      vnum: ScalarNumeric[V],
       ttV: TypeTag[V]): UserDefinedFunction =
     udaf(apply[V](compression, maxDiscrete))
 }
@@ -527,7 +529,7 @@ object functions {
     TDigestArrayReduceAggregator.udf(compression, maxDiscrete)
 }
 
-object infra {
+package infra {
   import org.isarnproject.sketches.java.{ TDigest => BaseTD }
   import org.apache.spark.isarnproject.sketches.tdigest.udt.TDigestUDT
 
@@ -554,48 +556,9 @@ object infra {
     val compressionDefault: Double = 0.5
     val maxDiscreteDefault: Int = 0
   }
-
-  // scala's standard Numeric doesn't support java.lang.xxx
-  trait ScalarNumeric[N] extends Serializable {
-    def toDouble(v: N): Double
-  }
-  object ScalarNumeric {
-    implicit val javaIntIsSN: ScalarNumeric[java.lang.Integer] =
-      new ScalarNumeric[java.lang.Integer] {
-        @inline def toDouble(v: java.lang.Integer): Double = v.toDouble
-      }
-    implicit val javaLongIsSN: ScalarNumeric[java.lang.Long] =
-      new ScalarNumeric[java.lang.Long] {
-        @inline def toDouble(v: java.lang.Long): Double = v.toDouble
-      }
-    implicit val javaFloatIsSN: ScalarNumeric[java.lang.Float] =
-      new ScalarNumeric[java.lang.Float] {
-        @inline def toDouble(v: java.lang.Float): Double = v.toDouble
-      }
-    implicit val javaDoubleIsSN: ScalarNumeric[java.lang.Double] =
-      new ScalarNumeric[java.lang.Double] {
-        @inline def toDouble(v: java.lang.Double): Double = v
-      }
-    implicit val scalaIntIsSN: ScalarNumeric[Int] =
-      new ScalarNumeric[Int] {
-        @inline def toDouble(v: Int): Double = v.toDouble
-      }
-    implicit val scalaLongIsSN: ScalarNumeric[Long] =
-      new ScalarNumeric[Long] {
-        @inline def toDouble(v: Long): Double = v.toDouble
-      }
-    implicit val scalaFloatIsSN: ScalarNumeric[Float] =
-      new ScalarNumeric[Float] {
-        @inline def toDouble(v: Float): Double = v.toDouble
-      }
-    implicit val scalaDoubleIsSN: ScalarNumeric[Double] =
-      new ScalarNumeric[Double] {
-        @inline def toDouble(v: Double): Double = v
-      }
-  }
 }
 
-} // package
+} // package org.isarnproject.sketches.spark.tdigest
 
 // I need to accept that Spark is never going to fix this.
 package org.apache.spark.isarnproject.sketches.tdigest.udt {
