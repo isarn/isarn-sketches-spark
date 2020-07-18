@@ -11,6 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/**
+ * Aggregators and supporting definitions for using T-Digest sketches with Spark
+ * DataFrame and Dataset.
+ */
 package org.isarnproject.sketches.spark.tdigest {
 
 import org.apache.spark.sql.types.SQLUserDefinedType
@@ -24,6 +28,12 @@ import org.apache.spark.ml.linalg.{ Vector => MLVec }
 
 import infra.TDigest
 
+/**
+ * A spark Aggregator for sketching a numeric column with a t-digest
+ * @tparam V the numeric value type
+ * @param compression the t-digest compression parameter.
+ * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+ */
 class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
   implicit
     vnum: infra.ScalarNumeric[V])
@@ -44,11 +54,18 @@ class TDigestAggregator[V](compression: Double, maxDiscrete: Int)(
   def outputEncoder: Encoder[TDigest] = ExpressionEncoder[TDigest]()
 }
 
+/** Companion object and definitions for TDigestAggregator */
 object TDigestAggregator {
   import scala.reflect.runtime.universe.TypeTag
   import org.apache.spark.sql.functions.udaf
   import org.apache.spark.sql.expressions.UserDefinedFunction
 
+  /**
+   * Construct a TDigestAggregator
+   * @tparam V the numeric value type expected from input column
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def apply[V](
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
@@ -56,6 +73,13 @@ object TDigestAggregator {
       vnum: infra.ScalarNumeric[V]): TDigestAggregator[V] =
     new TDigestAggregator[V](compression, maxDiscrete)
 
+  /**
+   * Return a spark UDF, usable with DataFrames,
+   * that aggregates a numeric column using a t-digest.
+   * @tparam V the numeric value type expected from input column
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def udf[V](
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
@@ -65,6 +89,12 @@ object TDigestAggregator {
     udaf(apply[V](compression, maxDiscrete))
 }
 
+/**
+ * A base class for aggregating over array-like collections of values.
+ * Supplies all Aggregator methods except `reduce`, which is class specific.
+ * Maintains and returns an Array[TDigest], regardless of specific input type.
+ * @tparam V the specific array-like column type expected from input column
+ */
 abstract class TDigestArrayAggregatorBase[V]
   extends
     Aggregator[V, Array[TDigest], Array[TDigest]] {
@@ -83,6 +113,12 @@ abstract class TDigestArrayAggregatorBase[V]
   def outputEncoder: Encoder[Array[TDigest]] = ExpressionEncoder[Array[TDigest]]()
 }
 
+/**
+ * A spark Aggregator for sketching an array of numeric values with an array of t-digests
+ * @tparam V the numeric value type contained in the array
+ * @param compression the t-digest compression parameter.
+ * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+ */
 class TDigestArrayAggregator[V](
     compression: Double,
     maxDiscrete: Int)(
@@ -102,11 +138,18 @@ class TDigestArrayAggregator[V](
   }
 }
 
+/** Companion object and definitions */
 object TDigestArrayAggregator {
   import scala.reflect.runtime.universe.TypeTag
   import org.apache.spark.sql.functions.udaf
   import org.apache.spark.sql.expressions.UserDefinedFunction
 
+  /**
+   * Construct a TDigestArrayAggregator
+   * @tparam V the numeric value type contained in the array column
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def apply[V](
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
@@ -114,6 +157,13 @@ object TDigestArrayAggregator {
       vnum: infra.ScalarNumeric[V]): TDigestArrayAggregator[V] =
     new TDigestArrayAggregator[V](compression, maxDiscrete)
 
+  /**
+   * Return a spark UDF, usable with DataFrames,
+   * that aggregates a numeric array column using an array of t-digests.
+   * @tparam V the numeric value type expected from input column
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def udf[V](
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault)(
@@ -123,6 +173,11 @@ object TDigestArrayAggregator {
     udaf(apply[V](compression, maxDiscrete))
 }
 
+/**
+ * A spark Aggregator for sketching the values in an MLLib Vector with an array of t-digests
+ * @param compression the t-digest compression parameter.
+ * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+ */
 class TDigestMLLibVecAggregator(
     compression: Double,
     maxDiscrete: Int)
@@ -151,22 +206,39 @@ class TDigestMLLibVecAggregator(
   }
 }
 
+/** Companion object and definitions */
 object TDigestMLLibVecAggregator {
   import scala.reflect.runtime.universe.TypeTag
   import org.apache.spark.sql.functions.udaf
   import org.apache.spark.sql.expressions.UserDefinedFunction
 
+  /**
+   * Construct a TDigestMLLibVecAggregator
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def apply(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestMLLibVecAggregator =
     new TDigestMLLibVecAggregator(compression, maxDiscrete)
 
+  /**
+   * Return a spark UDF, usable with DataFrames,
+   * that aggregates an MLLib Vector column using an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def udf(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
     udaf(apply(compression, maxDiscrete))
 }
 
+/**
+ * A spark Aggregator for sketching the values in an ML Vector with an array of t-digests
+ * @param compression the t-digest compression parameter.
+ * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+ */
 class TDigestMLVecAggregator(
     compression: Double,
     maxDiscrete: Int)
@@ -195,22 +267,40 @@ class TDigestMLVecAggregator(
   }
 }
 
+/** Companion object and definitions */
 object TDigestMLVecAggregator {
   import scala.reflect.runtime.universe.TypeTag
   import org.apache.spark.sql.functions.udaf
   import org.apache.spark.sql.expressions.UserDefinedFunction
 
+  /**
+   * Construct a TDigestMLVecAggregator
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def apply(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestMLVecAggregator =
     new TDigestMLVecAggregator(compression, maxDiscrete)
 
+  /**
+   * Return a spark UDF, usable with DataFrames,
+   * that aggregates an ML Vector column using an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def udf(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
     udaf(apply(compression, maxDiscrete))
 }
 
+/**
+ * A spark Aggregator for reducing a column of t-digests down to a single t-digest.
+ * Therefore, in this Aggregator, 'reduce' and 'merge' both perform a t-digest merge operation.
+ * @param compression the t-digest compression parameter.
+ * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+ */
 class TDigestReduceAggregator(
     compression: Double,
     maxDiscrete: Int)
@@ -231,22 +321,41 @@ class TDigestReduceAggregator(
   def outputEncoder: Encoder[TDigest] = ExpressionEncoder[TDigest]()
 }
 
+/** Companion object and definitions */
 object TDigestReduceAggregator {
   import scala.reflect.runtime.universe.TypeTag
   import org.apache.spark.sql.functions.udaf
   import org.apache.spark.sql.expressions.UserDefinedFunction
 
+  /**
+   * Construct a TDigestReduceAggregator
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def apply(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestReduceAggregator =
     new TDigestReduceAggregator(compression, maxDiscrete)
 
+  /**
+   * Return a spark UDF, usable with DataFrames,
+   * that aggregates a column of t-digests down to a single t-digest.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def udf(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
     udaf(apply(compression, maxDiscrete))
 }
 
+/**
+ * A spark Aggregator for reducing a column containing arrays of t-digests
+ * down to a single array of t-digests.
+ * Therefore, in this Aggregator, 'reduce' and 'merge' both perform t-digest merge operations.
+ * @param compression the t-digest compression parameter.
+ * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+ */
 class TDigestArrayReduceAggregator(
     compression: Double,
     maxDiscrete: Int)
@@ -264,16 +373,28 @@ class TDigestArrayReduceAggregator(
   }
 }
 
+/** Companion object and definitions */
 object TDigestArrayReduceAggregator {
   import scala.reflect.runtime.universe.TypeTag
   import org.apache.spark.sql.functions.udaf
   import org.apache.spark.sql.expressions.UserDefinedFunction
 
+  /**
+   * Construct a TDigestArrayReduceAggregator
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def apply(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): TDigestArrayReduceAggregator =
     new TDigestArrayReduceAggregator(compression, maxDiscrete)
 
+  /**
+   * Return a spark UDF, usable with DataFrames,
+   * that aggregates a column of t-digest arrays down to a single t-digest array.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   */
   def udf(
       compression: Double = TDigest.compressionDefault,
       maxDiscrete: Int = TDigest.maxDiscreteDefault): UserDefinedFunction =
@@ -282,42 +403,126 @@ object TDigestArrayReduceAggregator {
 
 /**
  * Convenience functions that do not require type parameters or typeclasses to invoke.
- * Use cases include java or pyspark bindings
+ * Use cases include calling from java or supporting pyspark bindings.
  */
 object functions {
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of integer values with a t-digest.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestIntUDF(compression: Double, maxDiscrete: Int) =
     TDigestAggregator.udf[Int](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of long-integer values with a t-digest.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestLongUDF(compression: Double, maxDiscrete: Int) =
     TDigestAggregator.udf[Long](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of float values with a t-digest.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestFloatUDF(compression: Double, maxDiscrete: Int) =
     TDigestAggregator.udf[Float](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of double values with a t-digest.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestDoubleUDF(compression: Double, maxDiscrete: Int) =
     TDigestAggregator.udf[Double](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of integer arrays with an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestIntArrayUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayAggregator.udf[Int](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of long-integer arrays with an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestLongArrayUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayAggregator.udf[Long](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of float arrays with an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestFloatArrayUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayAggregator.udf[Float](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of double arrays with an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestDoubleArrayUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayAggregator.udf[Double](compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of MLLib Vectors with an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestMLLibVecUDF(compression: Double, maxDiscrete: Int) =
     TDigestMLLibVecAggregator.udf(compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of ML Vectors with an array of t-digests.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestMLVecUDF(compression: Double, maxDiscrete: Int) =
     TDigestMLVecAggregator.udf(compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of t-digests into a single t-digest.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestReduceUDF(compression: Double, maxDiscrete: Int) =
     TDigestReduceAggregator.udf(compression, maxDiscrete)
 
+  /**
+   * Obtain a UDF, usable with DataFrames,
+   * for aggregating a column of t-digest arrays into a single t-digest array.
+   * @param compression the t-digest compression parameter.
+   * @param maxDiscrete maximum number of discrete values to track in PMF mode.
+   * @return the new aggregating UDF
+   */
   def tdigestArrayReduceUDF(compression: Double, maxDiscrete: Int) =
     TDigestArrayReduceAggregator.udf(compression, maxDiscrete)
 }
