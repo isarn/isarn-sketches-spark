@@ -60,7 +60,10 @@ libraryDependencies ++= Seq(
   "org.isarnproject" % "isarn-sketches-java" % "0.3.0",
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided)
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
+  "com.lihaoyi" %% "utest" % "0.7.4" % Test)
+
+testFrameworks += new TestFramework("utest.runner.Framework")
 
 initialCommands in console := """
   |import org.apache.spark.SparkConf
