@@ -199,117 +199,97 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 
 ### Sketch a numeric column (python)
 ```python
+>>> from random import gauss, randint
 >>> from isarnproject.sketches.spark.tdigest import *
->>> from random import gauss
->>> from pyspark.sql.types import *
->>> data = spark.sparkContext.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
->>> agg = data.agg(tdigestDoubleUDF("x"))
->>> td = agg.first()[0]
->>> td.cdfInverse(0.5)
-0.046805581998797419
->>> 
+>>> data = spark.createDataFrame([[randint(1,10),gauss(0,1)] for x in range(1000)])
+>>> udf1 = tdigestIntUDF("_1", maxDiscrete = 25)
+>>> udf2 = tdigestDoubleUDF("_2", compression = 0.5)
+>>> agg = data.agg(udf1, udf2).first()
+>>> agg[0].samplePMF()
+2.0
+>>> agg[1].samplePDF()
+-0.8707704090068431
 ```
 
 ### Sketch a numeric array column (python)
 ```python
+>>> from random import gauss, randint
 >>> from isarnproject.sketches.spark.tdigest import *
->>> from random import gauss
->>> from pyspark.sql.types import *
->>> data = spark.sparkContext.parallelize([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(1000)]).toDF(StructType([StructField("x", ArrayType(DoubleType()))]))
->>> agg = data.agg(tdigestDoubleArrayUDF("x"))
->>> tds = agg.first()[0]
->>> [t.cdfInverse(0.5) for t in tds] 
-[0.046116924117141189, -0.011071666930287466, -0.019006033872431105]
->>> 
+>>> data = spark.createDataFrame([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(1000)])
+>>> udf = tdigestDoubleArrayUDF("_1", compression = 0.7)
+>>> agg = data.agg(udf).first()
+>>> [td.samplePDF() for td in agg[0]]
+[0.6802628605487977, -0.649936837383734, -0.84228662547744]
 ```
 
 ### Sketch a column of ML Vectors (python)
 ```python
+>>> from random import gauss, randint
 >>> from isarnproject.sketches.spark.tdigest import *
->>> from random import gauss
->>> from pyspark.ml.linalg import VectorUDT, Vectors
->>> from pyspark.sql.types import *
->>> data = spark.sparkContext.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> agg = data.agg(tdigestMLVecUDF("x"))
->>> tds = agg.first()[0]
->>> [t.cdfInverse(0.5) for t in tds]
-[0.02859498787770634, -0.0027338622700039117, 0.041590980872883487]
->>> 
+>>> from pyspark.ml.linalg import Vectors
+>>> data = spark.createDataFrame([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)])
+>>> udf = tdigestMLVecUDF("_1", compression = 0.7)
+>>> agg = data.agg(udf).first()
+>>> [td.cdfInverse(0.5) for td in agg[0]]
+[-0.03088430803668949, -0.002903353148573491, 0.01640559766046329]
 ```
 
 ### Sketch a column of MLLib Vectors (python)
 ```python
+>>> from random import gauss, randint
 >>> from isarnproject.sketches.spark.tdigest import *
->>> from random import gauss
->>> from pyspark.mllib.linalg import VectorUDT, Vectors
->>> from pyspark.sql.types import *
->>> data = spark.sparkContext.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> agg = data.agg(tdigestMLLibVecUDF("x"))
->>> tds = agg.first()[0]
->>> [t.cdfInverse(0.5) for t in tds]
-[0.02859498787770634, -0.0027338622700039117, 0.041590980872883487]
->>>
+>>> from pyspark.mllib.linalg import Vectors
+>>> data = spark.createDataFrame([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)])
+>>> udf = tdigestMLLibVecUDF("_1", compression = 0.7)
+>>> agg = data.agg(udf).first()
+>>> [td.cdfInverse(0.5) for td in agg[0]]                                       
+[-0.03390700592837903, -0.0479047778031452, -0.02260427238692181]
 ```
 
 ### Reduce a column (or grouping) of T-Digests (python)
 ```python
+>>> from random import gauss, randint
 >>> from isarnproject.sketches.spark.tdigest import *
->>> from random import gauss
->>> from pyspark.sql.types import *
->>> x = spark.sparkContext.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
->>> g = spark.sparkContext.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
->>> data = g.crossJoin(x)
->>> tds = data.groupBy("g").agg(tdigestDoubleUDF("x").alias("tdigests"))
->>> tds.show()
-+---+--------------------+                                                      
+>>> data = spark.createDataFrame([[randint(1,5), gauss(0,1)] for x in range(5000)]).toDF("g","x")
+>>> grp = data.groupBy("g").agg(tdigestDoubleUDF("x").alias("tdigests"))
+>>> grp.show()
++---+--------------------+
 |  g|            tdigests|
 +---+--------------------+
-|  1|TDigestSQL(TDiges...|
-|  3|TDigestSQL(TDiges...|
-|  5|TDigestSQL(TDiges...|
-|  4|TDigestSQL(TDiges...|
-|  2|TDigestSQL(TDiges...|
+|  5|TDigest(-2.907724...|
+|  1|TDigest(-2.914628...|
+|  3|TDigest(-3.288239...|
+|  2|TDigest(-3.389084...|
+|  4|TDigest(-3.507597...|
 +---+--------------------+
 
->>> td = tds.agg(tdigestReduceUDF("tdigests").alias("tdigest"))
->>> td.show()
-+--------------------+                                                          
-|             tdigest|
-+--------------------+
-|TDigestSQL(TDiges...|
-+--------------------+
-
->>> 
+>>> udf = tdigestReduceUDF("tdigests")
+>>> agg = grp.agg(udf).first()
+>>> agg[0].sample()                                                             
+-0.14793866496592997
 ```
 
 ### Reduce a column (or grouping) of T-Digest Arrays (python)
 ```python
+>>> from random import gauss, randint
 >>> from isarnproject.sketches.spark.tdigest import *
->>> from random import gauss
->>> from pyspark.ml.linalg import VectorUDT, Vectors
->>> from pyspark.sql.types import *
->>> x = spark.sparkContext.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> g = spark.sparkContext.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
->>> data = g.crossJoin(x)
->>> tds = data.groupBy("g").agg(tdigestMLVecUDF("x").alias("tdigests"))
->>> tds.show()
+>>> data = spark.createDataFrame([[randint(1,5), [gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(5000)]).toDF("g","x")
+>>> grp = data.groupBy("g").agg(tdigestDoubleArrayUDF("x").alias("tdigests"))
+>>> grp.show()
 +---+--------------------+                                                      
 |  g|            tdigests|
 +---+--------------------+
-|  1|TDigestArraySQL([...|
-|  3|TDigestArraySQL([...|
-|  5|TDigestArraySQL([...|
-|  4|TDigestArraySQL([...|
-|  2|TDigestArraySQL([...|
+|  5|[TDigest(-3.38098...|
+|  1|[TDigest(-2.88380...|
+|  3|[TDigest(-3.40987...|
+|  2|[TDigest(-3.75224...|
+|  4|[TDigest(-2.66571...|
 +---+--------------------+
 
->>> td = tds.agg(tdigestArrayReduceUDF("tdigests").alias("tdigest"))
->>> td.show()
-+--------------------+                                                          
-|             tdigest|
-+--------------------+
-|TDigestArraySQL([...|
-+--------------------+
+>>> udf = tdigestArrayReduceUDF("tdigests")
+>>> agg = grp.agg(udf).first()
+>>> [td.cdfInverse(0.5) for td in agg[0]]                                       
+[-0.04635615835441749, -0.025723034166600753, -0.025168480174964893]
 ```
 
 ### Compute feature importance with respect to a predictive model
