@@ -202,7 +202,7 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 >>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
+>>> data = spark.sparkContext.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
 >>> agg = data.agg(tdigestDoubleUDF("x"))
 >>> td = agg.first()[0]
 >>> td.cdfInverse(0.5)
@@ -215,7 +215,7 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 >>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(1000)]).toDF(StructType([StructField("x", ArrayType(DoubleType()))]))
+>>> data = spark.sparkContext.parallelize([[[gauss(0,1),gauss(0,1),gauss(0,1)]] for x in range(1000)]).toDF(StructType([StructField("x", ArrayType(DoubleType()))]))
 >>> agg = data.agg(tdigestDoubleArrayUDF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds] 
@@ -229,7 +229,7 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 >>> from random import gauss
 >>> from pyspark.ml.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
+>>> data = spark.sparkContext.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
 >>> agg = data.agg(tdigestMLVecUDF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds]
@@ -243,7 +243,7 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 >>> from random import gauss
 >>> from pyspark.mllib.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
->>> data = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
+>>> data = spark.sparkContext.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
 >>> agg = data.agg(tdigestMLLibVecUDF("x"))
 >>> tds = agg.first()[0]
 >>> [t.cdfInverse(0.5) for t in tds]
@@ -256,8 +256,8 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 >>> from isarnproject.sketches.spark.tdigest import *
 >>> from random import gauss
 >>> from pyspark.sql.types import *
->>> x = sc.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
->>> g = sc.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
+>>> x = spark.sparkContext.parallelize([[gauss(0,1)] for x in range(1000)]).toDF(StructType([StructField("x", DoubleType())]))
+>>> g = spark.sparkContext.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
 >>> data = g.crossJoin(x)
 >>> tds = data.groupBy("g").agg(tdigestDoubleUDF("x").alias("tdigests"))
 >>> tds.show()
@@ -288,8 +288,8 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 >>> from random import gauss
 >>> from pyspark.ml.linalg import VectorUDT, Vectors
 >>> from pyspark.sql.types import *
->>> x = sc.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
->>> g = sc.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
+>>> x = spark.sparkContext.parallelize([[Vectors.dense([gauss(0,1),gauss(0,1),gauss(0,1)])] for x in range(1000)]).toDF(StructType([StructField("x", VectorUDT())]))
+>>> g = spark.sparkContext.parallelize([[1+x] for x in range(5)]).toDF(StructType([StructField("g", IntegerType())]))
 >>> data = g.crossJoin(x)
 >>> tds = data.groupBy("g").agg(tdigestMLVecUDF("x").alias("tdigests"))
 >>> tds.show()
