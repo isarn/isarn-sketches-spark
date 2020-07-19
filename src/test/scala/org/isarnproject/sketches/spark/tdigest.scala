@@ -32,6 +32,9 @@ object TDigestAggregationSuite extends SparkTestSuite {
     .toDF("j","x")
     .cache()
 
+  // make sure data are actually created prior to testing
+  data1.count()
+
   val tests = Tests {
     test("TDigestAggregator") {
       assert(data1.rdd.partitions.size > 1)
