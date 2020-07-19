@@ -57,7 +57,7 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "org.isarnproject" %% "isarn-sketches" % "0.3.0",
+  "org.isarnproject" % "isarn-sketches-java" % "0.3.0",
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided)
