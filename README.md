@@ -294,41 +294,24 @@ samples: Seq[Double] = ArrayBuffer(-0.741335878221013, 0.981730493526761, -0.635
 
 ### Compute feature importance with respect to a predictive model
 ```scala
-scala> :paste
-// Entering paste mode (ctrl-D to finish)
+scala> import org.isarnproject.pipelines.spark.fi.{TDigestFI,TDigestFIModel}, org.apache.spark.ml.regression.LinearRegression
 
-import org.apache.spark.ml.regression.LinearRegression
+scala> val training = spark.read.format("libsvm").load("data/mllib/sample_linear_regression_data.txt")
+training: org.apache.spark.sql.DataFrame = [label: double, features: vector]    
 
-val training = spark.read.format("libsvm")
-  .load("data/mllib/sample_linear_regression_data.txt")
+scala> val lr = new LinearRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
+lr: org.apache.spark.ml.regression.LinearRegression = linReg_5d7a1cf3dafa
 
-val lr = new LinearRegression()
-  .setMaxIter(10)
-  .setRegParam(0.3)
-  .setElasticNetParam(0.8)
+scala> val lrModel = lr.fit(training)
+lrModel: org.apache.spark.ml.regression.LinearRegressionModel = LinearRegressionModel: uid=linReg_5d7a1cf3dafa, numFeatures=10
 
-val lrModel = lr.fit(training)
+scala> val fi = new TDigestFI().setCompression(0.3).setMaxDiscrete(10)
+fi: org.isarnproject.pipelines.spark.fi.TDigestFI = TDigestFI_6837561844f2
 
-import org.isarnproject.pipelines.{TDigestFI,TDigestFIModel}
+scala> val fiMod = fi.fit(training).setTargetModel(lrModel).setDeviationMeasure("rms-dev").setFeatureNames(Array.tabulate(10){j=>s"x$j"})
+fiMod: org.isarnproject.pipelines.spark.fi.TDigestFIModel = TDigestFI_6837561844f2
 
-val fi = new TDigestFI().setCompression(0.3).setMaxDiscrete(10)
-
-val fiMod = fi.fit(training)
-  .setTargetModel(lrModel)
-  .setDeviationMeasure("rms-dev")
-  .setFeatureNames(Array.tabulate(10){j=>s"x$j"})
-
-val imp = fiMod.transform(training)
-
-// Exiting paste mode, now interpreting.
-
-import org.apache.spark.ml.regression.LinearRegression
-training: org.apache.spark.sql.DataFrame = [label: double, features: vector]
-lr: org.apache.spark.ml.regression.LinearRegression = linReg_ad8ebef9cfe8
-lrModel: org.apache.spark.ml.regression.LinearRegressionModel = linReg_ad8ebef9cfe8
-import org.isarnproject.pipelines.{TDigestFI, TDigestFIModel}
-fi: org.isarnproject.pipelines.TDigestFI = TDigestFI_67b1cff93349
-fiMod: org.isarnproject.pipelines.TDigestFIModel = TDigestFI_67b1cff93349
+scala> val imp = fiMod.transform(training)
 imp: org.apache.spark.sql.DataFrame = [name: string, importance: double]
 
 scala> imp.show
@@ -336,45 +319,41 @@ scala> imp.show
 |name|         importance|
 +----+-------------------+
 |  x0|                0.0|
-|  x1|0.27093413867331134|
-|  x2|0.27512986364699304|
-|  x3| 1.4284480425303374|
-|  x4|0.04472982597939822|
-|  x5| 0.5981079647203551|
+|  x1| 0.2642731504552658|
+|  x2| 0.2775267570310568|
+|  x3|   1.48027354456237|
+|  x4| 0.0442095774509019|
+|  x5|  0.620636336433091|
 |  x6|                0.0|
-|  x7|0.11970670592684969|
-|  x8| 0.1668815037423663|
-|  x9|0.17970574939101025|
+|  x7|0.12650113005096197|
+|  x8| 0.1644528333598182|
+|  x9| 0.1883875750326046|
 +----+-------------------+
 ```
 
 ### Compute feature importance with respect to a predictive model (python)
 ```python
+>>> from isarnproject.pipelines.spark.fi import *
 >>> from pyspark.ml.regression import LinearRegression
->>> training = spark.read.format("libsvm") \
-...     .load("data/mllib/sample_linear_regression_data.txt")
->>> lr = LinearRegression(maxIter=10, regParam=0.3, elasticNetParam=0.8)
+>>> training = spark.read.format("libsvm").load("data/mllib/sample_linear_regression_data.txt")
+>>> lr = LinearRegression(maxIter=10, regParam=0.3, elasticNetParam=0.8)        
 >>> lrModel = lr.fit(training)
->>> from isarnproject.pipelines.fi import *
->>> fi = TDigestFI().setCompression(0.3).setMaxDiscrete(10)
->>> fiMod = fi.fit(training) \
-...     .setTargetModel(lrModel) \
-...     .setDeviationMeasure("rms-dev") \
-...     .setFeatureNames(["x%d" % (j) for j in range(10)])
+>>> fi = TDigestFI(compression = 0.3, maxDiscrete = 10)
+>>> fiMod = fi.fit(training).setTargetModel(lrModel).setDeviationMeasure("rms-dev").setFeatureNames(["x%d" % (j) for j in range(10)])
 >>> imp = fiMod.transform(training)
 >>> imp.show()
-+----+-------------------+
-|name|         importance|
-+----+-------------------+
-|  x0|                0.0|
-|  x1| 0.2513147892886899|
-|  x2|0.28992477834838837|
-|  x3| 1.4906022974248356|
-|  x4|0.04197189119745892|
-|  x5| 0.6213459845972947|
-|  x6|                0.0|
-|  x7|0.12463038543257152|
-|  x8|0.17144699470039335|
-|  x9|0.18428188512840307|
-+----+-------------------+
++----+--------------------+
+|name|          importance|
++----+--------------------+
+|  x0|                 0.0|
+|  x1|  0.2617304778862077|
+|  x2| 0.26451433792352613|
+|  x3|  1.5244246022297059|
+|  x4|0.043227915487816015|
+|  x5|  0.6195605571925815|
+|  x6|                 0.0|
+|  x7| 0.11735009989902982|
+|  x8| 0.17250227692634765|
+|  x9| 0.18251143533748138|
++----+--------------------+
 ```
