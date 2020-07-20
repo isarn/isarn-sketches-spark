@@ -38,7 +38,7 @@ object TDigestAggregationSuite extends SparkTestSuite {
   // Spark DataFrames and RDDs are lazy.
   // Make sure data are actually created prior to testing, or ordering
   // may change based on test ordering
-  data1.count()
+  val count1 = data1.count()
 
   val epsD = 0.01
 
@@ -48,6 +48,8 @@ object TDigestAggregationSuite extends SparkTestSuite {
       val udf = TDigestAggregator.udf[Double](compression = 0.2, maxDiscrete = 25)
       val agg = data1.agg(udf(col("j")), udf(col("x"))).first
       val (tdj, tdx) = (agg.getAs[TDigest](0), agg.getAs[TDigest](1))
+      approx(tdj.mass(), count1)
+      approx(tdx.mass(), count1)
       assert(KSD(tdj, discreteUniformCDF(0, 9)) < epsD)
       assert(KSD(tdx, gaussianCDF(0,1)) < epsD)
     }
