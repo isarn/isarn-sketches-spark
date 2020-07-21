@@ -33,25 +33,42 @@ object TDigestAggregationSuite extends SparkTestSuite {
   // due to test execution order
   val data1 = spark.createDataFrame(Vector.fill(10000){(nextInt(10), nextGaussian)})
     .toDF("j","x")
-    .cache()
+
+  val data2 = spark.createDataFrame(Vector.fill(10000){(nextInt(10), Vector.fill(3){nextGaussian})})
+    .toDF("j", "x")
 
   // Spark DataFrames and RDDs are lazy.
   // Make sure data are actually created prior to testing, or ordering
   // may change based on test ordering
   val count1 = data1.count()
+  val count2 = data2.count()
 
-  val epsD = 0.01
+  val epsD = 0.02
 
   val tests = Tests {
     test("TDigestAggregator") {
       assert(data1.rdd.partitions.size > 1)
-      val udf = TDigestAggregator.udf[Double](compression = 0.2, maxDiscrete = 25)
+      val udf = TDigestAggregator.udf[Double](compression = 0.25, maxDiscrete = 25)
       val agg = data1.agg(udf(col("j")), udf(col("x"))).first
       val (tdj, tdx) = (agg.getAs[TDigest](0), agg.getAs[TDigest](1))
       approx(tdj.mass(), count1)
       approx(tdx.mass(), count1)
       assert(KSD(tdj, discreteUniformCDF(0, 9)) < epsD)
       assert(KSD(tdx, gaussianCDF(0,1)) < epsD)
+    }
+
+    test("TDigestArrayAggregator") {
+      assert(data2.rdd.partitions.size > 1)
+      val udfj = TDigestAggregator.udf[Int](maxDiscrete = 25)
+      val udfx = TDigestArrayAggregator.udf[Double](compression = 0.25)
+      val agg = data2.agg(udfj(data2("j")), udfx(data2("x"))).first
+      val (tdj, tdx) = (agg.getAs[TDigest](0), agg.getAs[Seq[TDigest]](1))
+      approx(tdj.mass(), count2)
+      assert(KSD(tdj, discreteUniformCDF(0, 9)) < epsD)
+      for { td <- tdx } {
+        approx(td.mass(), count2)
+        assert(KSD(td, gaussianCDF(0, 1)) < epsD)
+      }
     }
   }
 
