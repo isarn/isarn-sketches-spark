@@ -69,7 +69,11 @@ object CDFFunctions {
     val xmax = td.cdfInverse(1)
     val step = (xmax - xmin) / n.toDouble
     val tdcdf = if (td.size() <= td.getMaxDiscrete()) td.cdfDiscrete(_) else td.cdf(_)
-    (xmin to xmax by step).iterator.map(x => math.abs(tdcdf(x) - cdf(x))).max
+    (BigDecimal(xmin) until xmax by step)
+      .iterator
+      .map(_.toDouble)
+      .map(x => math.abs(tdcdf(x) - cdf(x)))
+      .max
   }
 
   def gaussianCDF(mean: Double = 0, stdv: Double = 1): CDF = {
