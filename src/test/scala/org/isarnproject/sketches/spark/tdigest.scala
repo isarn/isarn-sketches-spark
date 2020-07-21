@@ -19,6 +19,8 @@ import utest._
 
 import org.isarnproject.testing.spark.SparkTestSuite
 import org.apache.spark.sql.functions._
+import org.apache.spark.ml.linalg.{ Vectors => VectorsML }
+import org.apache.spark.mllib.linalg.{ Vectors => VectorsMLLib }
 
 import org.isarnproject.sketches.java.TDigest
 
@@ -31,10 +33,16 @@ object TDigestAggregationSuite extends SparkTestSuite {
 
   // don't use lazy values because then data generation order may be undefined,
   // due to test execution order
-  val data1 = spark.createDataFrame(Vector.fill(10000){(nextInt(10), nextGaussian)})
+  val data1 = spark.createDataFrame(Vector.fill(10001){(nextInt(10), nextGaussian)})
     .toDF("j","x")
 
-  val data2 = spark.createDataFrame(Vector.fill(10000){(nextInt(10), Vector.fill(3){nextGaussian})})
+  val data2 = spark.createDataFrame(Vector.fill(10002){(nextInt(10), Vector.fill(3){nextGaussian})})
+    .toDF("j", "x")
+
+  val data3 = spark.createDataFrame(Vector.fill(10003){(nextInt(10), VectorsML.dense(nextGaussian,nextGaussian,nextGaussian))})
+    .toDF("j", "x")
+
+  val data4 = spark.createDataFrame(Vector.fill(10004){(nextInt(10), VectorsMLLib.dense(nextGaussian,nextGaussian,nextGaussian))})
     .toDF("j", "x")
 
   // Spark DataFrames and RDDs are lazy.
@@ -42,6 +50,8 @@ object TDigestAggregationSuite extends SparkTestSuite {
   // may change based on test ordering
   val count1 = data1.count()
   val count2 = data2.count()
+  val count3 = data3.count()
+  val count4 = data4.count()
 
   val epsD = 0.02
 
@@ -61,12 +71,40 @@ object TDigestAggregationSuite extends SparkTestSuite {
       assert(data2.rdd.partitions.size > 1)
       val udfj = TDigestAggregator.udf[Int](maxDiscrete = 25)
       val udfx = TDigestArrayAggregator.udf[Double](compression = 0.25)
-      val agg = data2.agg(udfj(data2("j")), udfx(data2("x"))).first
+      val agg = data2.agg(udfj(col("j")), udfx(col("x"))).first
       val (tdj, tdx) = (agg.getAs[TDigest](0), agg.getAs[Seq[TDigest]](1))
       approx(tdj.mass(), count2)
       assert(KSD(tdj, discreteUniformCDF(0, 9)) < epsD)
       for { td <- tdx } {
         approx(td.mass(), count2)
+        assert(KSD(td, gaussianCDF(0, 1)) < epsD)
+      }
+    }
+
+    test("TDigestMLVecAggregator") {
+      assert(data3.rdd.partitions.size > 1)
+      val udfj = TDigestAggregator.udf[Int](maxDiscrete = 25)
+      val udfx = TDigestMLVecAggregator.udf(compression = 0.25)
+      val agg = data3.agg(udfj(col("j")), udfx(col("x"))).first
+      val (tdj, tdx) = (agg.getAs[TDigest](0), agg.getAs[Seq[TDigest]](1))
+      approx(tdj.mass(), count3)
+      assert(KSD(tdj, discreteUniformCDF(0, 9)) < epsD)
+      for { td <- tdx } {
+        approx(td.mass(), count3)
+        assert(KSD(td, gaussianCDF(0, 1)) < epsD)
+      }
+    }
+
+    test("TDigestMLLibVecAggregator") {
+      assert(data4.rdd.partitions.size > 1)
+      val udfj = TDigestAggregator.udf[Int](maxDiscrete = 25)
+      val udfx = TDigestMLLibVecAggregator.udf(compression = 0.25)
+      val agg = data4.agg(udfj(col("j")), udfx(col("x"))).first
+      val (tdj, tdx) = (agg.getAs[TDigest](0), agg.getAs[Seq[TDigest]](1))
+      approx(tdj.mass(), count4)
+      assert(KSD(tdj, discreteUniformCDF(0, 9)) < epsD)
+      for { td <- tdx } {
+        approx(td.mass(), count4)
         assert(KSD(td, gaussianCDF(0, 1)) < epsD)
       }
     }
@@ -79,6 +117,7 @@ object TDigestAggregationSuite extends SparkTestSuite {
 object CDFFunctions {
   type CDF = Double => Double
 
+  // Kolmogorov Smirnov D-statistic
   def KSD(td: TDigest, cdf: CDF, n: Int = 1000): Double = {
     require(td.size() > 1)
     require(n > 0)
