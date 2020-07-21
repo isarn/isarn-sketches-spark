@@ -14,7 +14,7 @@ organization := "org.isarnproject"
 
 val packageVersion = "0.5.0-SNAPSHOT"
 
-val sparkVersion = "3.0.0"
+val sparkVersion = "3.0.1-SNAPSHOT"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
@@ -55,6 +55,8 @@ developers := List(
     url   = url("https://erikerlandson.github.io/")
   )
 )
+
+resolvers += Resolver.mavenLocal
 
 libraryDependencies ++= Seq(
   "org.isarnproject" % "isarn-sketches-java" % "0.3.0",
