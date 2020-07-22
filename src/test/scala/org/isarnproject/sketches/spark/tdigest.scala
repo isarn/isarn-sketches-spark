@@ -35,15 +35,19 @@ object TDigestAggregationSuite extends SparkTestSuite {
   // due to test execution order
   val data1 = spark.createDataFrame(Vector.fill(10001){(nextInt(10), nextGaussian)})
     .toDF("j","x")
+    .cache()
 
   val data2 = spark.createDataFrame(Vector.fill(10002){(nextInt(10), Vector.fill(3){nextGaussian})})
     .toDF("j", "x")
+    .cache()
 
   val data3 = spark.createDataFrame(Vector.fill(10003){(nextInt(10), VectorsML.dense(nextGaussian,nextGaussian,nextGaussian))})
     .toDF("j", "x")
+    .cache()
 
   val data4 = spark.createDataFrame(Vector.fill(10004){(nextInt(10), VectorsMLLib.dense(nextGaussian,nextGaussian,nextGaussian))})
     .toDF("j", "x")
+    .cache()
 
   // Spark DataFrames and RDDs are lazy.
   // Make sure data are actually created prior to testing, or ordering
