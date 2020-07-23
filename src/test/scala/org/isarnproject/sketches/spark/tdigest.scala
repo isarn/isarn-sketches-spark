@@ -140,9 +140,6 @@ object TDigestAggregationSuite extends SparkTestSuite {
       }
     }
   }
-
-  def approx(x: Double, t: Double, eps: Double = 1e-4): Unit =
-    assert(math.abs(x - t) < eps)
 }
 
 object CDFFunctions {

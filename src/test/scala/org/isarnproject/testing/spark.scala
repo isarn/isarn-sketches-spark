@@ -36,6 +36,9 @@ abstract class SparkTestSuite extends TestSuite {
 
   def spark: SparkSession = sparkSession
 
+  def approx(x: Double, t: Double, eps: Double = 1e-4): Unit =
+    assert(math.abs(x - t) < eps)
+
   override def utestAfterAll(): Unit = {
     super.utestAfterAll()
     spark.stop()
