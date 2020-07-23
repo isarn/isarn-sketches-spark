@@ -57,6 +57,7 @@ object TDigestAggregationSuite extends SparkTestSuite {
   val count3 = data3.count()
   val count4 = data4.count()
 
+  // Kolmogorov-Smirnov D tolerance
   val epsD = 0.02
 
   val tests = Tests {
