@@ -112,6 +112,32 @@ object TDigestAggregationSuite extends SparkTestSuite {
         assert(KSD(td, gaussianCDF(0, 1)) < epsD)
       }
     }
+
+    test("TDigestReduceAggregator") {
+      assert(data1.rdd.partitions.size > 1)
+      val udf = TDigestAggregator.udf[Double](compression = 0.25)
+      val grp = data1.groupBy("j").agg(udf(col("x")).alias("td"))
+      assert(grp.count() == 10)
+      val udfred = TDigestReduceAggregator.udf(compression = 0.25)
+      val agg = grp.agg(udfred(col("td"))).first
+      val tdx = agg.getAs[TDigest](0)
+      approx(tdx.mass(), count1)
+      assert(KSD(tdx, gaussianCDF(0,1)) < epsD)
+    }
+
+    test("TDigestArrayReduceAggregator") {
+      assert(data2.rdd.partitions.size > 1)
+      val udf = TDigestArrayAggregator.udf[Double](compression = 0.25)
+      val grp = data2.groupBy("j").agg(udf(col("x")).alias("td"))
+      assert(grp.count() == 10)
+      val udfred = TDigestArrayReduceAggregator.udf(compression = 0.25)
+      val agg = grp.agg(udfred(col("td"))).first
+      val tdx = agg.getAs[Seq[TDigest]](0)
+      for { td <- tdx } {
+        approx(td.mass(), count2)
+        assert(KSD(td, gaussianCDF(0, 1)) < epsD)
+      }
+    }
   }
 
   def approx(x: Double, t: Double, eps: Double = 1e-4): Unit =
