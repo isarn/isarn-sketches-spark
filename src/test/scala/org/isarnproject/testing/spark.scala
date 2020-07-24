@@ -19,6 +19,7 @@ import org.apache.spark.sql.SparkSession
 import utest._
 
 abstract class SparkTestSuite extends TestSuite {
+
   private lazy val sparkConf: SparkConf = {
     val conf = new SparkConf()
       .setAppName("SparkTestSuite")
@@ -41,6 +42,8 @@ abstract class SparkTestSuite extends TestSuite {
 
   override def utestAfterAll(): Unit = {
     super.utestAfterAll()
+    // it is important that test suites are not run in parallel
+    // so that this doesn't kill a cluster while some other suite is using it
     spark.stop()
   }
 }

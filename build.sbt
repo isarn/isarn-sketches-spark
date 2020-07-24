@@ -65,7 +65,13 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
   "com.lihaoyi" %% "utest" % "0.7.4" % Test)
 
+// tell sbt about utest
 testFrameworks += new TestFramework("utest.runner.Framework")
+
+// default is to run tests in parallel, asynchronously, but
+// that breaks both spark-cluster setup and teardown, and also breaks
+// repeatability of the random data generation
+parallelExecution in Test := false
 
 initialCommands in console := """
   |import org.apache.spark.SparkConf
