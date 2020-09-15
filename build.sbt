@@ -14,7 +14,7 @@ organization := "org.isarnproject"
 
 val packageVersion = "0.5.0-SNAPSHOT"
 
-val sparkVersion = "3.0.1-SNAPSHOT"
+val sparkVersion = "3.0.1"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
