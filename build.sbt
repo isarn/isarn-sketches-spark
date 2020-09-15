@@ -1,6 +1,6 @@
-// xsbt clean unidoc previewSite
-// xsbt clean unidoc ghpagesPushSite
-// xsbt +publish
+// sbt clean unidoc previewSite
+// sbt clean unidoc ghpagesPushSite
+// sbt +publish
 // https://oss.sonatype.org
 // make sure sparkVersion is set as you want prior to +publish
 // when doing localPublish, also do:
