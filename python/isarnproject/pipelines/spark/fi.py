@@ -1,7 +1,7 @@
 from pyspark import since, keyword_only
 from pyspark.ml.param.shared import *
 from pyspark.ml.util import *
-from pyspark.ml.wrapper import JavaEstimator, JavaModel, JavaWrapper
+from pyspark.ml.wrapper import JavaEstimator, JavaModel, JavaWrapper, JavaPredictionModel
 from pyspark.ml.common import inherit_doc
 from pyspark.sql import DataFrame
 
@@ -14,7 +14,7 @@ def toPredictionModel(value):
         raise TypeError("object %s was not a JavaPredictionModel" % (value))
 
 class TDigestParams(Params):
-    delta = Param(Params._dummy(), "delta", "tdigest compression parameter",
+    compression = Param(Params._dummy(), "compression", "tdigest compression parameter",
                   typeConverter=TypeConverters.toFloat)
     maxDiscrete = Param(Params._dummy(), "maxDiscrete", "maximum discrete values",
                         typeConverter=TypeConverters.toInt)
@@ -22,11 +22,11 @@ class TDigestParams(Params):
     def __init__(self):
         super(TDigestParams, self).__init__()
 
-    def setDelta(self, value):
-        return self._set(delta=value)
+    def setCompression(self, value):
+        return self._set(compression=value)
 
-    def getDelta(self):
-        return self.getOrDefault(self.delta)
+    def getCompression(self):
+        return self.getOrDefault(self.compression)
 
     def setMaxDiscrete(self, value):
         return self._set(maxDiscrete=value)
@@ -90,15 +90,15 @@ class TDigestFI(JavaEstimator, TDigestFIParams, JavaMLWritable, JavaMLReadable):
     """
 
     @keyword_only
-    def __init__(self, delta = 0.5, maxDiscrete = 0, featuresCol = "features"):
+    def __init__(self, compression = 0.5, maxDiscrete = 0, featuresCol = "features"):
         super(TDigestFI, self).__init__()
-        self._java_obj = self._new_java_obj("org.isarnproject.pipelines.TDigestFI", self.uid)
-        self._setDefault(delta = 0.5, maxDiscrete = 0, featuresCol = "features")
+        self._java_obj = self._new_java_obj("org.isarnproject.pipelines.spark.fi.TDigestFI", self.uid)
+        self._setDefault(compression = 0.5, maxDiscrete = 0, featuresCol = "features")
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
 
     @keyword_only
-    def setParams(self, delta = 0.5, maxDiscrete = 0, featuresCol = "features"):
+    def setParams(self, compression = 0.5, maxDiscrete = 0, featuresCol = "features"):
         kwargs = self._input_kwargs
         return self._set(**kwargs)
 

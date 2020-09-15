@@ -1,8 +1,10 @@
-// xsbt clean unidoc previewSite
-// xsbt clean unidoc ghpagesPushSite
-// xsbt +publish
+// sbt clean unidoc previewSite
+// sbt clean unidoc ghpagesPushSite
+// sbt +publish
 // https://oss.sonatype.org
 // make sure sparkVersion is set as you want prior to +publish
+// when doing localPublish, also do:
+// rm -rf /home/eje/.ivy2/local/org.isarnproject /home/eje/.ivy2/cache/org.isarnproject
 
 import scala.sys.process._
 
@@ -10,9 +12,9 @@ name := "isarn-sketches-spark"
 
 organization := "org.isarnproject"
 
-val packageVersion = "0.4.1-SNAPSHOT"
+val packageVersion = "0.5.0"
 
-val sparkVersion = "3.0.0"
+val sparkVersion = "3.0.1"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
@@ -20,7 +22,7 @@ version := s"${packageVersion}-${sparkSuffix}"
 
 scalaVersion := "2.12.11"
 
-crossScalaVersions := Seq("2.12.11") // scala 2.12.11 when spark supports it
+crossScalaVersions := Seq("2.12.11")
 
 pomIncludeRepository := { _ => false }
 
@@ -54,14 +56,22 @@ developers := List(
   )
 )
 
+resolvers += Resolver.mavenLocal
+
 libraryDependencies ++= Seq(
-  "org.isarnproject" %% "isarn-sketches" % "0.1.2",
+  "org.isarnproject" % "isarn-sketches-java" % "0.3.0",
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-mllib" % sparkVersion % Provided,
-  "org.isarnproject" %% "isarn-scalatest" % "0.0.3" % Test,
-  "org.scalatest" %% "scalatest" % "3.0.5" % Test,
-  "org.apache.commons" % "commons-math3" % "3.6.1" % Test)
+  "com.lihaoyi" %% "utest" % "0.7.4" % Test)
+
+// tell sbt about utest
+testFrameworks += new TestFramework("utest.runner.Framework")
+
+// default is to run tests in parallel, asynchronously, but
+// that breaks both spark-cluster setup and teardown, and also breaks
+// repeatability of the random data generation
+parallelExecution in Test := false
 
 initialCommands in console := """
   |import org.apache.spark.SparkConf
@@ -70,10 +80,10 @@ initialCommands in console := """
   |import org.apache.spark.SparkContext._
   |import org.apache.spark.rdd.RDD
   |import org.apache.spark.ml.linalg.Vectors
-  |import org.isarnproject.sketches.TDigest
-  |import org.isarnproject.sketches.udaf._
-  |import org.apache.spark.isarnproject.sketches.udt._
-  |val initialConf = new SparkConf().setAppName("repl").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer").set("spark.kryoserializer.buffer", "16mb")
+  |import org.apache.spark.sql.functions._
+  |import org.isarnproject.sketches.java.TDigest
+  |import org.isarnproject.sketches.spark._
+  |val initialConf = new SparkConf().setAppName("repl")
   |val spark = SparkSession.builder.config(initialConf).master("local[2]").getOrCreate()
   |import spark._, spark.implicits._
   |val sc = spark.sparkContext
@@ -90,12 +100,11 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 mappings in (Compile, packageBin) ++= Seq(
   (baseDirectory.value / "python" / "isarnproject" / "__init__.py") -> "isarnproject/__init__.py",
   (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "__init__.py") -> "isarnproject/pipelines/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "fi.py") -> "isarnproject/pipelines/fi.py",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "spark" /  "__init__.py") -> "isarnproject/pipelines/spark/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "pipelines" / "spark" / "fi.py") -> "isarnproject/pipelines/spark/fi.py",
   (baseDirectory.value / "python" / "isarnproject" / "sketches" / "__init__.py") -> "isarnproject/sketches/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "__init__.py") -> "isarnproject/sketches/udaf/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udaf" / "tdigest.py") -> "isarnproject/sketches/udaf/tdigest.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "__init__.py") -> "isarnproject/sketches/udt/__init__.py",
-  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "udt" / "tdigest.py") -> "isarnproject/sketches/udt/tdigest.py"
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "spark" / "__init__.py") -> "isarnproject/sketches/spark/__init__.py",
+  (baseDirectory.value / "python" / "isarnproject" / "sketches" / "spark" / "tdigest.py") -> "isarnproject/sketches/spark/tdigest.py",
 )
 
 test in assembly := {}

@@ -1,5 +1,5 @@
 /*
-Copyright 2017 Erik Erlandson
+Copyright 2017-2020 Erik Erlandson
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -11,10 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package org.isarnproject.pipelines
-
-import scala.reflect.ClassTag
-import scala.collection.mutable.WrappedArray
+package org.isarnproject.pipelines.spark
 
 import org.apache.spark.ml.{Estimator, Model, PredictionModel}
 import org.apache.spark.ml.classification.ClassificationModel
@@ -28,13 +25,10 @@ import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.linalg.{Vector => MLVector,
   DenseVector => MLDense, SparseVector => MLSparse}
-import org.apache.spark.sql.expressions.MutableAggregationBuffer
-import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
 import org.apache.spark.sql.Row
 
-import org.isarnproject.sketches.TDigest
-import org.apache.spark.isarnproject.sketches.udt._
-import org.isarnproject.sketches.udaf._
+import org.isarnproject.sketches.java.TDigest
+import org.apache.spark.isarnproject.sketches.tdigest.udt.infra.udtVectorML
 
 // Defining these in a subpackage so the package can have other
 // param definitions added to it elsewhere. I'm keeping them visible
@@ -60,11 +54,11 @@ package params {
      * Defaults to 0.5
      * @group param
      */
-    final val delta: DoubleParam =
-      new DoubleParam(this, "delta", "t-digest compression (> 0)", ParamValidators.gt(0.0))
-    setDefault(delta, org.isarnproject.sketches.TDigest.deltaDefault)
-    final def getDelta: Double = $(delta)
-    final def setDelta(value: Double): this.type = set(delta, value)
+    final val compression: DoubleParam =
+      new DoubleParam(this, "compression", "t-digest compression (> 0)", ParamValidators.gt(0.0))
+    setDefault(compression, 0.5)
+    final def getCompression: Double = $(compression)
+    final def setCompression(value: Double): this.type = set(compression, value)
 
     /**
      * Maximum number of discrete values to sketch before transitioning to continuous mode
@@ -149,6 +143,8 @@ package params {
 
 import params._
 
+package fi {
+
 /**
  * Model/Transformer for transforming input feature data into a DataFrame containing
  * "name" and "importance" columns, mapping feature name to its computed importance.
@@ -183,7 +179,7 @@ class TDigestFIModel(
   def transformSchema(schema: StructType): StructType = {
     require(schema.fieldNames.contains($(featuresCol)))
     schema($(featuresCol)) match {
-      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+      case sf: StructField => require(sf.dataType.equals(udtVectorML))
     }
 
     // Output is two columns: feature names and corresponding importances
@@ -217,7 +213,7 @@ class TDigestFIModel(
         val refpred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
         for { j <- 0 until m } {
           val t = farr(j)
-          farr(j) = ftd(j).sample
+          farr(j) = ftd(j).sample()
           val pred = predictMethod.invoke(model, fvec).asInstanceOf[Double]
           farr(j) = t
           dev(j) += fdev(refpred, pred)
@@ -262,7 +258,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
   def transformSchema(schema: StructType): StructType = {
     require(schema.fieldNames.contains($(featuresCol)))
     schema($(featuresCol)) match {
-      case sf: StructField => require(sf.dataType.equals(TDigestUDTInfra.udtVectorML))
+      case sf: StructField => require(sf.dataType.equals(udtVectorML))
     }
     // I can't figure out the purpose for outputting a modified schema here.
     // Until further notice I'm going to output an empty one.
@@ -274,19 +270,19 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
       .treeAggregate(Array.empty[TDigest])({ case (ttd, Row(fv: MLVector)) =>
         val m = fv.size
         val td =
-          if (ttd.length > 0) ttd else Array.fill(m)(TDigest.empty($(delta), $(maxDiscrete)))
+          if (ttd.length > 0) ttd else Array.fill(m)(TDigest.empty($(compression), $(maxDiscrete)))
         require(td.length == m, "Inconsistent feature vector size $m")
         fv match {
           case v: MLSparse =>
             var jBeg = 0
             v.foreachActive((j, x) => {
-              for { k <- jBeg until j } { td(k) += 0.0 }
-              td(j) += x
+              for { k <- jBeg until j } { td(k).update(0.0) }
+              td(j).update(x)
               jBeg = j + 1
             })
-            for { k <- jBeg until v.size } { td(k) += 0.0 }
+            for { k <- jBeg until v.size } { td(k).update(0.0) }
           case _ =>
-            for { j <- 0 until fv.size } { td(j) += fv(j) }
+            for { j <- 0 until fv.size } { td(j).update(fv(j)) }
         }
         td
       },
@@ -298,7 +294,7 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
         } else {
           require(td1.length == td2.length, "mismatched t-digest arrays")
           for { j <- 0 until td1.length } {
-            td1(j) ++= td2(j)
+            td1(j).merge(td2(j))
           }
           td1
         })
@@ -307,3 +303,5 @@ class TDigestFI(override val uid: String) extends Estimator[TDigestFIModel] with
     model
   }
 }
+
+} // package fi

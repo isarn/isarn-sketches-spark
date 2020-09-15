@@ -1,11 +1,11 @@
 resolvers += Resolver.url(
   "bintray-sbt-plugin-releases",
-    url("http://dl.bintray.com/content/sbt/sbt-plugin-releases"))(
+    url("https://dl.bintray.com/content/sbt/sbt-plugin-releases"))(
         Resolver.ivyStylePatterns)
 
 resolvers += "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-resolvers += "jgit-repo" at "http://download.eclipse.org/jgit/maven"
+resolvers += "jgit-repo" at "https://download.eclipse.org/jgit/maven"
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.3")
 
@@ -14,6 +14,8 @@ addSbtPlugin("com.eed3si9n" % "sbt-unidoc" % "0.4.3")
 addSbtPlugin("io.crashbox" % "sbt-gpg" % "0.2.1")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.2")
+
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.15.0")
 
 // scoverage and coveralls deps are at old versions to avoid a bug in the current versions
 // update these when this fix is released:  https://github.com/scoverage/sbt-coveralls/issues/73
