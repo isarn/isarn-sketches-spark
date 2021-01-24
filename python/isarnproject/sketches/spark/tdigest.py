@@ -311,6 +311,8 @@ class TDigest(object):
         if (q < 0.0) or (q > 1.0): return float('nan')
         if (self.nclusters == 0): return float('nan')
         if (self.nclusters == 1): return self._cent[0]
+        if (q == 0.0): return self._cent[0]
+        if (q == 1.0): return self._cent[self.nclusters - 1]
         m = q * self.mass()
         j1 = self._rmcovj(m)
         j2 = j1 + 1
