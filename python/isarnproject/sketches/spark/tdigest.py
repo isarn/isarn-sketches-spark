@@ -237,8 +237,8 @@ class TDigest(object):
         self._csum = list(it.accumulate(self._mass))
 
     def __repr__(self):
-        return "TDigest(%s, %s, %s, %s, %s)" % \
-            (repr(self.compression), repr(self.maxDiscrete), repr(self.nclusters), repr(self._cent), repr(self._mass))
+        return "TDigest(%s, %s, %s, %s)" % \
+            (repr(self.compression), repr(self.maxDiscrete), repr(self._cent), repr(self._mass))
 
     def mass(self):
         """
