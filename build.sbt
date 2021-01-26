@@ -12,7 +12,7 @@ name := "isarn-sketches-spark"
 
 organization := "org.isarnproject"
 
-val packageVersion = "0.5.1"
+val packageVersion = "0.5.2-SNAPSHOT"
 
 val sparkVersion = "3.0.1"
 
