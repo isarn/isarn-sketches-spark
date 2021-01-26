@@ -9,7 +9,7 @@ https://isarn.github.io/isarn-sketches-spark/latest/api/#org.isarnproject.sketch
 ``` scala
 // Note that the version of spark is part of the release name.
 // This example is for spark 3.0:
-libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.5.0-sp3.0"
+libraryDependencies += "org.isarnproject" %% "isarn-sketches-spark" % "0.5.1-sp3.0"
 
 // This package builds against some `% Provided` Apache Spark dependencies:
 libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
@@ -37,7 +37,7 @@ If you are interested in a spark/scala build that is not listed above, please co
 Several Spark CLI tools accept the `--packages` argument, including spark-shell and pyspark.
 Following is an example using `spark-shell`:
 ```bash
-$ spark-shell --packages "org.isarnproject:isarn-sketches-spark_2.12:0.5.0-sp3.0"
+$ spark-shell --packages "org.isarnproject:isarn-sketches-spark_2.12:0.5.1-sp3.0"
 ```
 Note that you need to explicitly include the scala version as part of the package name.
 
