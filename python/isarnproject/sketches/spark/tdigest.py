@@ -260,7 +260,7 @@ class TDigest(object):
         return len(self._cent) == 0
 
     def __reduce__(self):
-        return (self.__class__, (self.compression, self.maxDiscrete, self.nclusters, self._cent, self._mass, ))
+        return (self.__class__, (self.compression, self.maxDiscrete, self._cent, self._mass, ))
 
     def _lmcovj(self, m):
         assert self.nclusters >= 2
