@@ -12,9 +12,9 @@ name := "isarn-sketches-spark"
 
 organization := "org.isarnproject"
 
-val packageVersion = "0.5.3-SNAPSHOT"
+val packageVersion = "0.6.0"
 
-val sparkVersion = "3.0.1"
+val sparkVersion = "3.2.0"
 
 val sparkSuffix = s"""sp${sparkVersion.split('.').take(2).mkString(".")}"""
 
